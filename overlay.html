@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lopez Basketball Overlay</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  html, body {
+    margin: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: transparent;
+    cursor: none;
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--white);
+    user-select: none;
+  }
+  /* ?bg=1 — test backdrop only, never used in OBS */
+  body.test-bg { background: linear-gradient(135deg, #7a5a3a, #3d4a3a 60%, #555); }
+
+  .bug {
+    position: absolute;
+    left: 50%;
+    bottom: 56px;
+    display: flex;
+    height: 134px;
+    border-top: 6px solid var(--lopez-yellow);
+    background: var(--lopez-navy);
+    transform: translateX(-50%);
+    transition: opacity 350ms ease, transform 350ms ease;
+  }
+  .bug.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(48px);
+  }
+
+  .seal {
+    width: 132px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--lopez-navy-deep);
+  }
+  .seal img { width: 104px; height: 104px; display: block; }
+
+  .team { width: 430px; display: flex; flex-direction: column; }
+  .team-main { height: 92px; display: flex; align-items: center; }
+  .team-sub {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 20px;
+    background: var(--lopez-navy-deep);
+    font-size: 28px;
+    line-height: 1;
+  }
+  .away .team-main, .away .team-sub { flex-direction: row-reverse; }
+
+  .stripe { width: 14px; align-self: stretch; }
+  .name-wrap { flex: 1; min-width: 0; padding: 0 16px; overflow: hidden; }
+  .away .name-wrap { text-align: right; }
+  .name {
+    display: inline-block;
+    font-size: 44px;
+    line-height: 1;
+    white-space: nowrap;
+    text-transform: uppercase;
+    transform-origin: left center;
+  }
+
+  .poss {
+    width: 0;
+    height: 0;
+    border: 13px solid transparent;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .home .poss { border-left-color: var(--lopez-yellow); border-right-width: 0; }
+  .away .poss { border-right-color: var(--lopez-yellow); border-left-width: 0; }
+  .poss.on { opacity: 1; }
+
+  .score {
+    position: relative;
+    width: 132px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 76px;
+    line-height: 1;
+    background: var(--lopez-navy-deep);
+  }
+  .score::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--lopez-yellow);
+    opacity: 0;
+  }
+  .score.flash::after { animation: flash 400ms ease-out; }
+  @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+
+  .label { color: var(--lopez-yellow); }
+  .bonus { color: var(--lopez-field); opacity: 0; transition: opacity 200ms ease; }
+  .bonus.on { opacity: 1; }
+  .pips { display: flex; gap: 7px; margin-left: auto; }
+  .away .pips { margin-left: 0; margin-right: auto; }
+  .pip { width: 26px; height: 10px; background: var(--lopez-yellow); opacity: 0.22; }
+  .pip.on { opacity: 1; }
+
+  .center { width: 250px; display: flex; flex-direction: column; }
+  .clock {
+    height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 70px;
+    line-height: 1;
+    background: var(--lopez-yellow);
+    color: var(--lopez-navy-deep);
+  }
+  .clock.warn { background: var(--warn-red); color: var(--white); }
+  .center-sub { height: 42px; display: flex; background: var(--lopez-navy-deep); }
+  .period, .shot {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    line-height: 1;
+  }
+  .period { color: var(--lopez-yellow); }
+  .shot { background: var(--black); color: var(--lopez-yellow); }
+  .shot.warn { color: var(--warn-red); }
+  .shot.off { display: none; }
+</style>
+</head>
+<body>
+  <div class="bug hidden" id="bug">
+    <div class="seal"><img src="logo.png" alt=""></div>
+
+    <div class="team home">
+      <div class="team-main">
+        <div class="stripe" id="home-stripe"></div>
+        <div class="name-wrap"><span class="name" id="home-name"></span></div>
+        <div class="poss" id="home-poss"></div>
+        <div class="score" id="home-score">0</div>
+      </div>
+      <div class="team-sub">
+        <span><span class="label">FOULS</span> <span id="home-fouls">0</span></span>
+        <span class="bonus" id="home-bonus">BONUS</span>
+        <span class="pips" id="home-pips"></span>
+      </div>
+    </div>
+
+    <div class="center">
+      <div class="clock" id="clock">10:00</div>
+      <div class="center-sub">
+        <div class="period" id="period">Q1</div>
+        <div class="shot" id="shot">24</div>
+      </div>
+    </div>
+
+    <div class="team away">
+      <div class="team-main">
+        <div class="stripe" id="away-stripe"></div>
+        <div class="name-wrap"><span class="name" id="away-name"></span></div>
+        <div class="poss" id="away-poss"></div>
+        <div class="score" id="away-score">0</div>
+      </div>
+      <div class="team-sub">
+        <span><span class="label">FOULS</span> <span id="away-fouls">0</span></span>
+        <span class="bonus" id="away-bonus">BONUS</span>
+        <span class="pips" id="away-pips"></span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const MAX_TIMEOUTS = 3;
+  const RECONNECT_MS = 2000;
+  const last = { home: null, away: null };
+
+  if (new URLSearchParams(location.search).has('bg')) document.body.classList.add('test-bg');
+
+  for (const side of ['home', 'away']) {
+    for (let i = 0; i < MAX_TIMEOUTS; i++) {
+      const pip = document.createElement('span');
+      pip.className = 'pip';
+      $(side + '-pips').appendChild(pip);
+    }
+  }
+
+  function formatGameClock(ms) {
+    if (ms >= 60000) {
+      const total = Math.ceil(ms / 1000);
+      return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+    }
+    const tenths = Math.floor(ms / 100);
+    return Math.floor(tenths / 10) + '.' + (tenths % 10);
+  }
+
+  function formatShotClock(ms) {
+    if (ms >= 5000) return String(Math.ceil(ms / 1000));
+    const tenths = Math.floor(ms / 100);
+    return Math.floor(tenths / 10) + '.' + (tenths % 10);
+  }
+
+  function periodLabel(p) {
+    if (p <= 4) return 'Q' + p;
+    return p === 5 ? 'OT' : (p - 4) + 'OT';
+  }
+
+  // Squeeze long team names horizontally instead of truncating them.
+  function fitName(el) {
+    el.style.transform = '';
+    const room = el.parentElement.clientWidth - 32;
+    const need = el.offsetWidth;
+    if (need > room) el.style.transform = 'scaleX(' + room / need + ')';
+  }
+
+  function renderTeam(side, team, other, state) {
+    const name = $(side + '-name');
+    if (name.textContent !== team.name) {
+      name.textContent = team.name;
+      fitName(name);
+    }
+    $(side + '-stripe').style.background = team.color;
+
+    const score = $(side + '-score');
+    if (last[side] !== null && last[side] !== team.score) {
+      score.classList.remove('flash');
+      void score.offsetWidth;
+      score.classList.add('flash');
+    }
+    last[side] = team.score;
+    score.textContent = team.score;
+
+    $(side + '-fouls').textContent = team.fouls;
+    // BONUS shows on the team that gets to shoot.
+    $(side + '-bonus').classList.toggle('on', other.fouls >= state.bonusFouls);
+    $(side + '-poss').classList.toggle('on', state.possession === side);
+    [...$(side + '-pips').children].forEach((pip, i) => pip.classList.toggle('on', i < team.timeouts));
+  }
+
+  function render(state) {
+    $('bug').classList.toggle('hidden', !state.visible);
+    renderTeam('home', state.home, state.away, state);
+    renderTeam('away', state.away, state.home, state);
+
+    $('clock').textContent = formatGameClock(state.gameClockMs);
+    $('clock').classList.toggle('warn', state.gameClockMs > 0 && state.gameClockMs < 10000);
+    $('period').textContent = periodLabel(state.period);
+
+    const shot = $('shot');
+    shot.classList.toggle('off', !state.shotClockVisible);
+    shot.textContent = formatShotClock(state.shotClockMs);
+    shot.classList.toggle('warn', state.shotClockMs < 5000);
+  }
+
+  let ws = null;
+  function report(text) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'log', text: 'overlay: ' + text }));
+  }
+  window.onerror = (message, src, line) => report('ERROR ' + message + ' @ line ' + line);
+
+  function connect() {
+    ws = new WebSocket('ws://' + location.host);
+    ws.onopen = () => {
+      const bug = $('bug').getBoundingClientRect();
+      report('viewport ' + innerWidth + 'x' + innerHeight + ', scorebug at ' +
+        Math.round(bug.left) + ',' + Math.round(bug.top) + ' size ' +
+        Math.round(bug.width) + 'x' + Math.round(bug.height));
+    };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state') render(msg.state);
+    };
+    ws.onclose = () => setTimeout(connect, RECONNECT_MS);
+    ws.onerror = () => ws.close();
+  }
+  connect();
+</script>
+</body>
+</html>

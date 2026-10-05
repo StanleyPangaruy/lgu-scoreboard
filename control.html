@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Scoreboard Control</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--lopez-navy-deep);
+    color: var(--white);
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body { padding: 12px; max-width: 900px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  header img { width: 48px; height: 48px; }
+  header h1 { flex: 1; margin: 0; font-size: 20px; color: var(--lopez-yellow); }
+  .status { font-size: 14px; padding: 4px 10px; border-radius: 99px; background: var(--warn-red); }
+  .status.ok { background: var(--lopez-field-deep); }
+
+  section {
+    background: var(--lopez-navy);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--lopez-yellow);
+    text-transform: uppercase;
+  }
+
+  button {
+    font: inherit;
+    font-weight: 700;
+    font-size: 20px;
+    min-height: 56px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--lopez-sky);
+    color: var(--white);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:active { transform: scale(0.96); }
+  button.minor { background: var(--lopez-navy-deep); border: 2px solid var(--lopez-sky); }
+  button.accent { background: var(--lopez-yellow); color: var(--lopez-navy-deep); }
+  button.danger { background: var(--warn-red); }
+  button.on { background: var(--lopez-yellow); color: var(--lopez-navy-deep); border-color: var(--lopez-yellow); }
+
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row > * { flex: 1; min-width: 0; }
+
+  .clock-display { display: flex; align-items: baseline; justify-content: center; gap: 20px; }
+  #clock { font-size: 72px; font-weight: 700; line-height: 1; }
+  #period { font-size: 28px; color: var(--lopez-yellow); }
+  #shot { font-size: 40px; color: var(--lopez-yellow); }
+  #startstop { min-height: 80px; font-size: 30px; background: var(--lopez-field-deep); }
+  #startstop.running { background: var(--warn-red); }
+
+  .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .teams section { margin-bottom: 0; border-top: 8px solid var(--lopez-sky); }
+  .team-name { font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .team-score { font-size: 72px; font-weight: 700; line-height: 1.1; text-align: center; }
+  .counter { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .counter span { flex: 1; font-size: 18px; }
+  .counter b { font-size: 24px; color: var(--lopez-yellow); }
+  .counter button { width: 56px; flex: none; }
+  .bonus { color: var(--lopez-field); font-size: 14px; }
+
+  details summary { cursor: pointer; font-size: 18px; padding: 6px 0; color: var(--lopez-yellow); }
+  label { display: block; font-size: 14px; margin-top: 10px; color: var(--lopez-sky-light); }
+  input[type=text], input[type=number] {
+    width: 100%;
+    font: inherit;
+    font-size: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid var(--lopez-sky);
+    background: var(--lopez-navy-deep);
+    color: var(--white);
+  }
+  input[type=color] { width: 100%; height: 48px; padding: 0; border: 0; background: none; }
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .keys { font-size: 14px; color: var(--lopez-sky-light); margin: 8px 0 0; }
+
+  @media (max-width: 520px) {
+    #clock, .team-score { font-size: 56px; }
+    button { font-size: 18px; padding: 0 6px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="">
+    <h1>Scoreboard Control</h1>
+    <span class="status" id="status">Offline</span>
+  </header>
+
+  <section>
+    <div class="clock-display">
+      <span id="period">Q1</span>
+      <span id="clock">10:00</span>
+      <span id="shot">24</span>
+    </div>
+    <div class="row"><button id="startstop" data-a="clock" data-run="toggle">START</button></div>
+    <div class="row">
+      <button class="minor" data-a="adjustClock" data-delta-ms="-60000">−1m</button>
+      <button class="minor" data-a="adjustClock" data-delta-ms="-1000">−1s</button>
+      <button class="minor" data-a="adjustClock" data-delta-ms="1000">+1s</button>
+      <button class="minor" data-a="adjustClock" data-delta-ms="60000">+1m</button>
+    </div>
+    <div class="row">
+      <button class="accent" data-a="shot" data-seconds="24">SHOT 24</button>
+      <button class="accent" data-a="shot" data-seconds="14">SHOT 14</button>
+      <button class="minor" id="shot-toggle">Shot clock: ON</button>
+    </div>
+  </section>
+
+  <div class="teams">
+    <section id="home">
+      <div class="team-name" data-f="name">HOME</div>
+      <div class="team-score" data-f="score">0</div>
+      <div class="row">
+        <button data-a="score" data-delta="1">+1</button>
+        <button data-a="score" data-delta="2">+2</button>
+        <button data-a="score" data-delta="3">+3</button>
+      </div>
+      <div class="row"><button class="minor" data-a="score" data-delta="-1">−1 (fix)</button></div>
+      <div class="counter">
+        <span>Fouls <b data-f="fouls">0</b> <span class="bonus" data-f="penalty"></span></span>
+        <button class="minor" data-a="fouls" data-delta="-1">−</button>
+        <button data-a="fouls" data-delta="1">+</button>
+      </div>
+      <div class="counter">
+        <span>Timeouts left <b data-f="timeouts">2</b></span>
+        <button class="minor" data-a="timeouts" data-delta="1">+</button>
+        <button data-a="timeouts" data-delta="-1">Use</button>
+      </div>
+      <div class="row"><button class="minor" data-f="poss">Possession</button></div>
+    </section>
+
+    <section id="away">
+      <div class="team-name" data-f="name">AWAY</div>
+      <div class="team-score" data-f="score">0</div>
+      <div class="row">
+        <button data-a="score" data-delta="1">+1</button>
+        <button data-a="score" data-delta="2">+2</button>
+        <button data-a="score" data-delta="3">+3</button>
+      </div>
+      <div class="row"><button class="minor" data-a="score" data-delta="-1">−1 (fix)</button></div>
+      <div class="counter">
+        <span>Fouls <b data-f="fouls">0</b> <span class="bonus" data-f="penalty"></span></span>
+        <button class="minor" data-a="fouls" data-delta="-1">−</button>
+        <button data-a="fouls" data-delta="1">+</button>
+      </div>
+      <div class="counter">
+        <span>Timeouts left <b data-f="timeouts">2</b></span>
+        <button class="minor" data-a="timeouts" data-delta="1">+</button>
+        <button data-a="timeouts" data-delta="-1">Use</button>
+      </div>
+      <div class="row"><button class="minor" data-f="poss">Possession</button></div>
+    </section>
+  </div>
+
+  <section style="margin-top:12px">
+    <h2>Game</h2>
+    <div class="row">
+      <button class="minor" data-a="prevPeriod">◀ Period label</button>
+      <button class="accent" data-a="nextPeriod" data-confirm="Go to the next period? This resets the clock.">NEXT PERIOD ▶</button>
+    </div>
+    <div class="row">
+      <button class="minor" id="visible-toggle">Overlay: ON AIR</button>
+    </div>
+    <p class="keys">Keyboard: Space = start/stop clock · R = shot 24 · F = shot 14</p>
+  </section>
+
+  <section>
+    <details>
+      <summary>Setup — teams &amp; game length</summary>
+      <div class="setup-grid">
+        <div data-team="home">
+          <label>Home name<input type="text" data-k="name" maxlength="24"></label>
+          <label>Abbreviation<input type="text" data-k="abbr" maxlength="4"></label>
+          <label>Colour<input type="color" data-k="color"></label>
+        </div>
+        <div data-team="away">
+          <label>Away name<input type="text" data-k="name" maxlength="24"></label>
+          <label>Abbreviation<input type="text" data-k="abbr" maxlength="4"></label>
+          <label>Colour<input type="color" data-k="color"></label>
+        </div>
+      </div>
+      <label>Minutes per quarter<input type="number" id="period-min" min="1" max="20" step="1"></label>
+      <div class="row">
+        <button class="danger" data-a="resetGame" data-confirm="Reset the whole game? Scores, fouls and clock go back to zero.">RESET GAME</button>
+      </div>
+    </details>
+  </section>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const RECONNECT_MS = 2000;
+  let ws = null;
+  let state = null;
+
+  function send(msg) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg));
+  }
+
+  function formatGameClock(ms) {
+    if (ms >= 60000) {
+      const total = Math.ceil(ms / 1000);
+      return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+    }
+    const tenths = Math.floor(ms / 100);
+    return Math.floor(tenths / 10) + '.' + (tenths % 10);
+  }
+
+  function periodLabel(p) {
+    if (p <= 4) return 'Q' + p;
+    return p === 5 ? 'OT' : (p - 4) + 'OT';
+  }
+
+  function setValue(input, value) {
+    if (document.activeElement !== input) input.value = value;
+  }
+
+  function render() {
+    $('clock').textContent = formatGameClock(state.gameClockMs);
+    $('period').textContent = periodLabel(state.period);
+    $('shot').textContent = state.shotClockVisible ? Math.ceil(state.shotClockMs / 1000) : '';
+    const ss = $('startstop');
+    ss.textContent = state.clockRunning ? 'STOP' : 'START';
+    ss.classList.toggle('running', state.clockRunning);
+    $('shot-toggle').textContent = 'Shot clock: ' + (state.shotClockVisible ? 'ON' : 'OFF');
+    $('visible-toggle').textContent = 'Overlay: ' + (state.visible ? 'ON AIR' : 'HIDDEN');
+    $('visible-toggle').classList.toggle('on', state.visible);
+    setValue($('period-min'), state.periodLengthSec / 60);
+
+    for (const side of ['home', 'away']) {
+      const team = state[side];
+      const el = $(side);
+      const f = (name) => el.querySelector('[data-f="' + name + '"]');
+      el.style.borderTopColor = team.color;
+      f('name').textContent = team.name;
+      f('score').textContent = team.score;
+      f('fouls').textContent = team.fouls;
+      f('penalty').textContent = team.fouls >= state.bonusFouls ? 'IN PENALTY' : '';
+      f('timeouts').textContent = team.timeouts;
+      f('poss').classList.toggle('on', state.possession === side);
+
+      const setup = document.querySelector('[data-team="' + side + '"]');
+      for (const input of setup.querySelectorAll('input')) setValue(input, team[input.dataset.k]);
+    }
+  }
+
+  // Buttons with data-a send that action; other data-* become its fields.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn || !state) return;
+
+    if (btn.id === 'shot-toggle') return send({ action: 'shotVisible', value: !state.shotClockVisible });
+    if (btn.id === 'visible-toggle') return send({ action: 'visible', value: !state.visible });
+    if (btn.dataset.f === 'poss') {
+      const side = btn.closest('section').id;
+      return send({ action: 'possession', value: state.possession === side ? null : side });
+    }
+    if (!btn.dataset.a) return;
+    if (btn.dataset.confirm && !confirm(btn.dataset.confirm)) return;
+
+    const msg = { action: btn.dataset.a };
+    const teamEl = btn.closest('.teams section');
+    if (teamEl) msg.team = teamEl.id;
+    for (const key of ['delta', 'deltaMs', 'seconds']) {
+      if (key in btn.dataset) msg[key] = Number(btn.dataset[key]);
+    }
+    if ('run' in btn.dataset) msg.run = btn.dataset.run;
+    send(msg);
+  });
+
+  document.addEventListener('change', (e) => {
+    const input = e.target;
+    if (input.id === 'period-min') return send({ action: 'periodLength', seconds: Number(input.value) * 60 });
+    const setup = input.closest('[data-team]');
+    if (setup) send({ action: 'team', team: setup.dataset.team, [input.dataset.k]: input.value });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input') || e.repeat) return;
+    if (e.code === 'Space') { e.preventDefault(); send({ action: 'clock', run: 'toggle' }); }
+    else if (e.code === 'KeyR') send({ action: 'shot', seconds: 24 });
+    else if (e.code === 'KeyF') send({ action: 'shot', seconds: 14 });
+  });
+
+  function connect() {
+    ws = new WebSocket('ws://' + location.host);
+    ws.onopen = () => { $('status').textContent = 'Connected'; $('status').classList.add('ok'); };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state') { state = msg.state; render(); }
+    };
+    ws.onclose = () => {
+      $('status').textContent = 'Offline';
+      $('status').classList.remove('ok');
+      setTimeout(connect, RECONNECT_MS);
+    };
+    ws.onerror = () => ws.close();
+  }
+  connect();
+</script>
+</body>
+</html>
