@@ -15,12 +15,26 @@
     font-variant-numeric: tabular-nums;
     -webkit-tap-highlight-color: transparent;
   }
-  body { padding: 12px; max-width: 900px; margin: 0 auto; }
+  body {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
 
   header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   header img { width: 48px; height: 48px; }
-  header h1 { flex: 1; margin: 0; font-size: 20px; color: var(--lopez-yellow); }
-  .status { font-size: 14px; padding: 4px 10px; border-radius: 99px; background: var(--warn-red); }
+  header h1 {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: clamp(16px, 4.5vw, 20px);
+    color: var(--lopez-yellow);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status { flex: none; font-size: 14px; padding: 4px 10px; border-radius: 99px; background: var(--warn-red); }
   .status.ok { background: var(--lopez-field-deep); }
 
   section {
@@ -40,9 +54,9 @@
   button {
     font: inherit;
     font-weight: 700;
-    font-size: 20px;
+    font-size: clamp(15px, 4.4vw, 20px);
     min-height: 56px;
-    padding: 0 12px;
+    padding: 0 clamp(4px, 2vw, 12px);
     border: 0;
     border-radius: 10px;
     background: var(--lopez-sky);
@@ -56,29 +70,42 @@
   button.danger { background: var(--warn-red); }
   button.on { background: var(--lopez-yellow); color: var(--lopez-navy-deep); border-color: var(--lopez-yellow); }
 
-  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row { display: flex; gap: clamp(6px, 2vw, 8px); margin-top: 8px; }
   .row > * { flex: 1; min-width: 0; }
 
-  .clock-display { display: flex; align-items: baseline; justify-content: center; gap: 20px; }
-  #clock { font-size: 72px; font-weight: 700; line-height: 1; }
-  #period { font-size: 28px; color: var(--lopez-yellow); }
-  #shot { font-size: 40px; color: var(--lopez-yellow); }
+  /* Phone and tablet: clock on top, the two teams side by side below it. */
+  .board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-bottom: 12px; }
+  .board section { margin-bottom: 0; min-width: 0; }
+  .board .clock-panel { grid-column: 1 / -1; }
+  .teams { display: contents; }
+  .teams section { border-top: 8px solid var(--lopez-sky); }
+
+  .clock-display { display: flex; align-items: baseline; justify-content: center; gap: clamp(10px, 5vw, 24px); }
+  #clock { font-size: clamp(48px, 17vw, 84px); font-weight: 700; line-height: 1; }
+  #period { font-size: clamp(20px, 7vw, 30px); color: var(--lopez-yellow); }
+  #shot { font-size: clamp(28px, 10vw, 44px); color: var(--lopez-yellow); }
   #startstop { min-height: 80px; font-size: 30px; background: var(--lopez-field-deep); }
   #startstop.running { background: var(--warn-red); }
 
-  .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .teams section { margin-bottom: 0; border-top: 8px solid var(--lopez-sky); }
-  .team-name { font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .team-score { font-size: 72px; font-weight: 700; line-height: 1.1; text-align: center; }
-  .counter { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-  .counter span { flex: 1; font-size: 18px; }
-  .counter b { font-size: 24px; color: var(--lopez-yellow); }
-  .counter button { width: 56px; flex: none; }
-  .bonus { color: var(--lopez-field); font-size: 14px; }
+  .team-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .team-logo {
+    flex: none;
+    width: clamp(32px, 9vw, 44px);
+    height: clamp(32px, 9vw, 44px);
+    object-fit: contain;
+  }
+  .team-logo:not([src]) { display: none; }
+  .team-name { min-width: 0; font-size: clamp(16px, 4.6vw, 22px); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .team-score { font-size: clamp(48px, 16vw, 84px); font-weight: 700; line-height: 1.1; text-align: center; }
+  .counter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+  .counter > span { flex: 1 1 100%; font-size: clamp(15px, 4.2vw, 18px); }
+  .counter b { font-size: 1.35em; color: var(--lopez-yellow); }
+  .counter button { flex: 1; min-width: 0; }
+  .bonus { color: var(--lopez-field); font-size: 0.8em; white-space: nowrap; }
 
   details summary { cursor: pointer; font-size: 18px; padding: 6px 0; color: var(--lopez-yellow); }
   label { display: block; font-size: 14px; margin-top: 10px; color: var(--lopez-sky-light); }
-  input[type=text], input[type=number] {
+  input[type=text], input[type=number], select {
     width: 100%;
     font: inherit;
     font-size: 20px;
@@ -89,12 +116,43 @@
     color: var(--white);
   }
   input[type=color] { width: 100%; height: 48px; padding: 0; border: 0; background: none; }
-  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .setup-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
   .keys { font-size: 14px; color: var(--lopez-sky-light); margin: 8px 0 0; }
 
-  @media (max-width: 520px) {
-    #clock, .team-score { font-size: 56px; }
-    button { font-size: 18px; padding: 0 6px; }
+  /* Very narrow phones: tighten padding so three score buttons still fit. */
+  @media (max-width: 380px) {
+    body { padding-left: 8px; padding-right: 8px; }
+    section { padding: 8px; }
+    .board { gap: 8px; }
+  }
+
+  /* Room for label and buttons on one line. */
+  @media (min-width: 640px) {
+    .counter { flex-wrap: nowrap; }
+    .counter > span { flex: 1 1 auto; }
+    .counter button { flex: none; width: 64px; }
+  }
+
+  /* Wide screens and phones held sideways: home | clock | away, like the scorebug itself. */
+  @media (min-width: 1000px), (orientation: landscape) and (min-width: 560px) and (max-height: 500px) {
+    .board { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+    .board .clock-panel { grid-column: 2; grid-row: 1; }
+    #home { grid-column: 1; grid-row: 1; }
+    #away { grid-column: 3; grid-row: 1; }
+    #clock { font-size: 96px; }
+    #startstop { min-height: 96px; }
+    .lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  }
+
+  /* Phone held sideways: keep everything reachable without much scrolling. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    button { min-height: 46px; font-size: 15px; padding: 0 2px; }
+    #startstop { min-height: 56px; font-size: 24px; }
+    #clock, .team-score { font-size: clamp(36px, 8vw, 56px); }
+    .clock-display { gap: 10px; }
+    .counter { flex-wrap: wrap; }
+    .counter > span { flex: 1 1 100%; }
+    .counter button { flex: 1; width: auto; }
   }
 </style>
 </head>
@@ -105,7 +163,8 @@
     <span class="status" id="status">Offline</span>
   </header>
 
-  <section>
+  <main class="board">
+  <section class="clock-panel">
     <div class="clock-display">
       <span id="period">Q1</span>
       <span id="clock">10:00</span>
@@ -127,7 +186,7 @@
 
   <div class="teams">
     <section id="home">
-      <div class="team-name" data-f="name">HOME</div>
+      <div class="team-head"><img class="team-logo" data-f="logo" alt=""><div class="team-name" data-f="name">HOME</div></div>
       <div class="team-score" data-f="score">0</div>
       <div class="row">
         <button data-a="score" data-delta="1">+1</button>
@@ -149,7 +208,7 @@
     </section>
 
     <section id="away">
-      <div class="team-name" data-f="name">AWAY</div>
+      <div class="team-head"><img class="team-logo" data-f="logo" alt=""><div class="team-name" data-f="name">AWAY</div></div>
       <div class="team-score" data-f="score">0</div>
       <div class="row">
         <button data-a="score" data-delta="1">+1</button>
@@ -170,8 +229,10 @@
       <div class="row"><button class="minor" data-f="poss">Possession</button></div>
     </section>
   </div>
+  </main>
 
-  <section style="margin-top:12px">
+  <div class="lower">
+  <section>
     <h2>Game</h2>
     <div class="row">
       <button class="minor" data-a="prevPeriod">◀ Period label</button>
@@ -179,6 +240,7 @@
     </div>
     <div class="row">
       <button class="minor" id="visible-toggle">Overlay: ON AIR</button>
+      <button class="minor" id="identity-toggle">Top-left logos: ON</button>
     </div>
     <p class="keys">Keyboard: Space = start/stop clock · R = shot 24 · F = shot 14</p>
   </section>
@@ -188,13 +250,11 @@
       <summary>Setup — teams &amp; game length</summary>
       <div class="setup-grid">
         <div data-team="home">
-          <label>Home name<input type="text" data-k="name" maxlength="24"></label>
-          <label>Abbreviation<input type="text" data-k="abbr" maxlength="4"></label>
+          <label>Home team<select data-k="pick"></select></label>
           <label>Colour<input type="color" data-k="color"></label>
         </div>
         <div data-team="away">
-          <label>Away name<input type="text" data-k="name" maxlength="24"></label>
-          <label>Abbreviation<input type="text" data-k="abbr" maxlength="4"></label>
+          <label>Away team<select data-k="pick"></select></label>
           <label>Colour<input type="color" data-k="color"></label>
         </div>
       </div>
@@ -204,7 +264,9 @@
       </div>
     </details>
   </section>
+  </div>
 
+<script src="logo-cutout.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const RECONNECT_MS = 2000;
@@ -229,6 +291,21 @@
     return p === 5 ? 'OT' : (p - 4) + 'OT';
   }
 
+  let teams = [];
+
+  // The dropdowns list every logo in the logo/ folder.
+  function renderTeamOptions(list) {
+    teams = list;
+    for (const select of document.querySelectorAll('[data-k="pick"]')) {
+      select.replaceChildren();
+      const placeholder = new Option('— Choose team —', '');
+      placeholder.disabled = true;
+      select.add(placeholder);
+      for (const t of teams) select.add(new Option(t.name, t.id));
+    }
+    if (state) render();
+  }
+
   function setValue(input, value) {
     if (document.activeElement !== input) input.value = value;
   }
@@ -243,6 +320,8 @@
     $('shot-toggle').textContent = 'Shot clock: ' + (state.shotClockVisible ? 'ON' : 'OFF');
     $('visible-toggle').textContent = 'Overlay: ' + (state.visible ? 'ON AIR' : 'HIDDEN');
     $('visible-toggle').classList.toggle('on', state.visible);
+    $('identity-toggle').textContent = 'Top-left logos: ' + (state.identityVisible ? 'ON' : 'OFF');
+    $('identity-toggle').classList.toggle('on', state.identityVisible);
     setValue($('period-min'), state.periodLengthSec / 60);
 
     for (const side of ['home', 'away']) {
@@ -257,8 +336,12 @@
       f('timeouts').textContent = team.timeouts;
       f('poss').classList.toggle('on', state.possession === side);
 
+      setLogo(f('logo'), team.logo ? 'logos/' + encodeURIComponent(team.logo) : '');
+
       const setup = document.querySelector('[data-team="' + side + '"]');
-      for (const input of setup.querySelectorAll('input')) setValue(input, team[input.dataset.k]);
+      setValue(setup.querySelector('[data-k="color"]'), team.color);
+      const pick = teams.find((t) => t.logo === team.logo);
+      setValue(setup.querySelector('[data-k="pick"]'), pick ? pick.id : '');
     }
   }
 
@@ -269,6 +352,7 @@
 
     if (btn.id === 'shot-toggle') return send({ action: 'shotVisible', value: !state.shotClockVisible });
     if (btn.id === 'visible-toggle') return send({ action: 'visible', value: !state.visible });
+    if (btn.id === 'identity-toggle') return send({ action: 'identityVisible', value: !state.identityVisible });
     if (btn.dataset.f === 'poss') {
       const side = btn.closest('section').id;
       return send({ action: 'possession', value: state.possession === side ? null : side });
@@ -290,7 +374,10 @@
     const input = e.target;
     if (input.id === 'period-min') return send({ action: 'periodLength', seconds: Number(input.value) * 60 });
     const setup = input.closest('[data-team]');
-    if (setup) send({ action: 'team', team: setup.dataset.team, [input.dataset.k]: input.value });
+    if (!setup) return;
+    if (input.dataset.k === 'pick') send({ action: 'pickTeam', team: setup.dataset.team, id: input.value });
+    else send({ action: 'team', team: setup.dataset.team, [input.dataset.k]: input.value });
+    input.blur();
   });
 
   document.addEventListener('keydown', (e) => {
@@ -305,6 +392,7 @@
     ws.onopen = () => { $('status').textContent = 'Connected'; $('status').classList.add('ok'); };
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
+      if (msg.type === 'teams') renderTeamOptions(msg.teams);
       if (msg.type === 'state') { state = msg.state; render(); }
     };
     ws.onclose = () => {

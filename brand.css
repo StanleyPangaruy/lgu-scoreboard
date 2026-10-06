@@ -1,8 +1,10 @@
 /* Colours sampled from the Bayan ng Lopez seal. Use these variables everywhere. */
 :root {
   /* Primary */
-  --lopez-yellow: #FFF600;
-  --lopez-navy: #080D6B;
+  --lopez-red: #CE1126;      /* main panel colour */
+  --lopez-red-deep: #7A0A19; /* score boxes, lower strip */
+  --lopez-yellow: #FFF600;   /* seal ring — accent */
+  --lopez-navy: #080D6B;     /* seal lettering */
   --lopez-navy-deep: #010441;
 
   /* Secondary */
@@ -18,6 +20,7 @@
 
   /* Allowed exception: final-seconds / shot-clock warning */
   --warn-red: #E5202B;
+  --shot-warn: #FF5A5F; /* readable red on the black shot-clock box */
 
   /* Bahnschrift ships with Windows 10/11 and has a condensed width axis. */
   --font-display: 'Bahnschrift', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', Arial, sans-serif;

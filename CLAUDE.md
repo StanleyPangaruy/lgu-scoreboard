@@ -11,10 +11,19 @@ separate control panel page the operator uses to run the game.
 - `server.js` — small Node server that serves both pages and relays state over WebSocket.
   The server holds the single source of truth for game state.
 - `brand.css` — the colour and font variables, shared by both pages.
+- `logo-cutout.js` — shared by both pages; strips the white background from team logos and
+  scales large images down once in the browser.
+- `pictu/` — station identity logos (PICTU, Live Lopez, the Lopez seal). They take turns at
+  the top left of the overlay, crossfading every 8 seconds, in file-name order. Served as
+  `/identity/<file>`. Some are 6000×6000 originals; never display them unscaled — always go
+  through `logoCutout(src, size)`. Images with their own transparency are not cut out.
 - `state.json` — the current game, written by the server so a restart keeps the score.
   Generated at runtime; do not edit by hand.
-- `cropped-Lopez-Quezon-FINAL-1.png` — the municipal seal, served as `/logo.png`. Use as-is;
-  never recolor, crop, stretch, or redraw it.
+- `logo/` — one image per team (`.png`, `.jpg`, `.webp`, `.svg`). The file name is the team:
+  `san_antonio.png` appears as "SAN ANTONIO" in the control panel's team dropdown. Logos are
+  served as `/logos/<file>`, and only files found in this folder are served.
+- `cropped-Lopez-Quezon-FINAL-1.png` — the Lopez seal, served as `/logo.png` for the control
+  panel header. Use as-is; never recolor, crop, stretch, or redraw any seal or logo.
 
 Keep it dependency-light: plain HTML, CSS, and vanilla JS. No framework, no build step.
 The only npm dependency should be `ws`.
@@ -59,9 +68,11 @@ variables everywhere — no raw hex values elsewhere in the CSS.
 ```css
 :root {
   /* Primary */
+  --lopez-red:        #CE1126; /* main panel colour (chosen by the operator, not from the seal) */
+  --lopez-red-deep:   #7A0A19; /* score boxes, lower strip */
   --lopez-yellow:     #FFF600; /* seal ring — main accent */
-  --lopez-navy:       #080D6B; /* seal lettering — main panel colour */
-  --lopez-navy-deep:  #010441; /* outline navy — darkest panel, shadows */
+  --lopez-navy:       #080D6B; /* seal lettering — control panel */
+  --lopez-navy-deep:  #010441; /* seal backing, text on yellow */
 
   /* Secondary */
   --lopez-sky:        #0E91F8; /* sky / river */
@@ -78,39 +89,50 @@ variables everywhere — no raw hex values elsewhere in the CSS.
 
 ### How to use them
 
-- **Panels / scorebug body:** `--lopez-navy`, with `--lopez-navy-deep` for depth and dividers.
+- **Scorebug body:** `--lopez-red`, with `--lopez-red-deep` for score boxes and the lower strip.
+- **Seal backing:** `--lopez-navy-deep`, so the seal's yellow ring stands off the red.
+- **Control panel:** stays navy, so its red STOP and RESET buttons remain distinct.
 - **Accents, borders, active states, score highlight:** `--lopez-yellow`.
-- **Text on navy:** white for scores and names, yellow for labels (PERIOD, FOULS, BONUS).
+- **Text on red:** white for scores and names, yellow for labels (PERIOD, FOULS).
 - **Text on yellow:** `--lopez-navy-deep` only. Never white on yellow — it is unreadable.
+- **BONUS:** a yellow chip with navy text. Do not use the greens or blues as text on red.
+- **Final 10 seconds:** the clock block turns white with red digits (red on red would vanish).
 - **Secondary info** (timeouts, possession arrow, lower thirds): `--lopez-sky`.
-- **Positive / go states** (bonus, clock running): `--lopez-field`.
+- **Positive / go states** on the control panel (clock running): `--lopez-field-deep`.
 - Greens and earth brown are supporting colours only — never use them for large panels.
 - Team colours are per-game data, not brand colours. Show them as a small stripe or chip
-  beside the team name; the scorebug frame always stays navy and yellow.
+  beside the team name; the scorebug frame always stays red and yellow. A red team colour will not show against the
+  frame — pick a different shade for that team.
 - Do not introduce colours outside this palette without asking. Shot-clock/final-seconds
-  warning red is the one allowed exception (`#E5202B`).
+  warning reds are the allowed exceptions (`--warn-red`, `--shot-warn`).
 
 ## Design direction
 
 - Broadcast-style scorebug, anchored bottom-centre or top-left. Bold, flat, high contrast —
   it must read on a phone screen at 720p.
-- Seal sits on the scorebug at 72–96px. Keep clear space around it; no effects on it.
+- Each team's logo sits at its own outer end of the scorebug, directly on a navy end cap.
+  The logo files are square images on white; `logo-cutout.js` removes the white that touches
+  the image edge in the browser (white inside a seal is kept). Never edit the files in
+  `logo/` to do this. No other effects on logos. A team with no logo has no end cap.
 - Typography: a condensed bold sans for names and labels, and **tabular (monospaced) numerals**
   for the score and clocks so digits never shift width as they change.
 - Minimum text size on the 1080p canvas: 28px. Scores 64px+.
 - Transitions are short (200–400ms). Score changes get a brief yellow flash; nothing loops
-  or pulses continuously except the final-seconds clock warning.
+  or pulses continuously except the final-seconds clock warning and the top-left identity
+  logo rotation (requested by the operator).
 
 ## Game state
 
 One plain JSON object, owned by the server, broadcast in full on every change:
 
-- `home` / `away`: `name`, `abbr` (3–4 letters), `score`, `fouls`, `timeouts`, `color`, `logo`
+- `home` / `away`: `name`, `abbr` (3–4 letters), `score`, `fouls`, `timeouts`, `color`,
+  `logo` (file name in `logo/`). Name, abbreviation and logo are set together by picking a team.
 - `period` (1–4, then `OT`, `2OT`), `periodLengthSec`
 - `gameClock` (seconds remaining, tenths under one minute), `clockRunning`
 - `shotClock` (24 / 14 reset), `shotClockVisible`
 - `possession` (`home` | `away` | `null`)
-- `visible` — master show/hide for the whole overlay
+- `visible` — show/hide for the scorebug
+- `identityVisible` — show/hide for the top-left identity logos (independent of `visible`)
 
 Rules follow FIBA defaults unless told otherwise: 10-minute quarters, 5-minute overtime,
 team bonus on the 5th foul per quarter, 24/14 shot clock.
@@ -122,7 +144,8 @@ team bonus on the 5th foul per quarter, 24/14 shot clock.
   to 24 and 14; next period; possession toggle; show/hide overlay.
 - Every destructive action (reset game, new period) needs a confirm.
 - Keyboard shortcuts for the clock (Space = start/stop) and shot clock resets.
-- Team names, abbreviations and colours are editable from the panel, not hard-coded.
+- Teams are chosen from a dropdown built from `logo/`, not typed in. The stripe colour is
+  still editable per team.
 
 ## Working rules
 

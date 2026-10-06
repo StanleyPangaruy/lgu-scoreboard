@@ -22,6 +22,27 @@
   /* ?bg=1 — test backdrop only, never used in OBS */
   body.test-bg { background: linear-gradient(135deg, #7a5a3a, #3d4a3a 60%, #555); }
 
+  /* Station identity, top left: the logos in pictu/ take turns. */
+  .ident {
+    position: absolute;
+    top: 48px;
+    left: 48px;
+    width: 160px;
+    height: 160px;
+    transition: opacity 350ms ease;
+  }
+  .ident.hidden { opacity: 0; }
+  .ident img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+  .ident img.on { opacity: 1; }
+
   .bug {
     position: absolute;
     left: 50%;
@@ -29,7 +50,7 @@
     display: flex;
     height: 134px;
     border-top: 6px solid var(--lopez-yellow);
-    background: var(--lopez-navy);
+    background: var(--lopez-red);
     transform: translateX(-50%);
     transition: opacity 350ms ease, transform 350ms ease;
   }
@@ -38,14 +59,25 @@
     transform: translateX(-50%) translateY(48px);
   }
 
-  .seal {
+  /* Team logo at each outer end. logo-cutout.js removes the white around each logo, so the
+     seal sits directly on the navy end cap. */
+  .badge {
     width: 132px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--lopez-navy-deep);
   }
-  .seal img { width: 104px; height: 104px; display: block; }
+  .badge.empty { display: none; }
+  .badge img {
+    width: 114px;
+    height: 114px;
+    object-fit: contain;
+    display: block;
+    opacity: 0;
+    transition: opacity 250ms ease;
+  }
+  .badge img.ready { opacity: 1; }
 
   .team { width: 430px; display: flex; flex-direction: column; }
   .team-main { height: 92px; display: flex; align-items: center; }
@@ -55,7 +87,7 @@
     align-items: center;
     gap: 18px;
     padding: 0 20px;
-    background: var(--lopez-navy-deep);
+    background: var(--lopez-red-deep);
     font-size: 28px;
     line-height: 1;
   }
@@ -93,7 +125,7 @@
     justify-content: center;
     font-size: 76px;
     line-height: 1;
-    background: var(--lopez-navy-deep);
+    background: var(--lopez-red-deep);
   }
   .score::after {
     content: '';
@@ -106,7 +138,13 @@
   @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
 
   .label { color: var(--lopez-yellow); }
-  .bonus { color: var(--lopez-field); opacity: 0; transition: opacity 200ms ease; }
+  .bonus {
+    padding: 3px 10px 1px;
+    background: var(--lopez-yellow);
+    color: var(--lopez-navy-deep);
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
   .bonus.on { opacity: 1; }
   .pips { display: flex; gap: 7px; margin-left: auto; }
   .away .pips { margin-left: 0; margin-right: auto; }
@@ -124,8 +162,8 @@
     background: var(--lopez-yellow);
     color: var(--lopez-navy-deep);
   }
-  .clock.warn { background: var(--warn-red); color: var(--white); }
-  .center-sub { height: 42px; display: flex; background: var(--lopez-navy-deep); }
+  .clock.warn { background: var(--white); color: var(--lopez-red); }
+  .center-sub { height: 42px; display: flex; background: var(--lopez-red-deep); }
   .period, .shot {
     flex: 1;
     display: flex;
@@ -136,13 +174,15 @@
   }
   .period { color: var(--lopez-yellow); }
   .shot { background: var(--black); color: var(--lopez-yellow); }
-  .shot.warn { color: var(--warn-red); }
+  .shot.warn { color: var(--shot-warn); }
   .shot.off { display: none; }
 </style>
 </head>
 <body>
+  <div class="ident hidden" id="ident"></div>
+
   <div class="bug hidden" id="bug">
-    <div class="seal"><img src="logo.png" alt=""></div>
+    <div class="badge empty" id="home-badge"><img id="home-logo" alt=""></div>
 
     <div class="team home">
       <div class="team-main">
@@ -179,8 +219,11 @@
         <span class="pips" id="away-pips"></span>
       </div>
     </div>
+
+    <div class="badge empty" id="away-badge"><img id="away-logo" alt=""></div>
   </div>
 
+<script src="logo-cutout.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const MAX_TIMEOUTS = 3;
@@ -233,6 +276,12 @@
     }
     $(side + '-stripe').style.background = team.color;
 
+    const logo = $(side + '-logo');
+    const src = team.logo ? 'logos/' + encodeURIComponent(team.logo) : '';
+    $(side + '-badge').classList.toggle('empty', !src);
+    if (logo.dataset.want !== src) logo.classList.remove('ready');
+    setLogo(logo, src, (shown) => logo.classList.toggle('ready', shown));
+
     const score = $(side + '-score');
     if (last[side] !== null && last[side] !== team.score) {
       score.classList.remove('flash');
@@ -249,8 +298,41 @@
     [...$(side + '-pips').children].forEach((pip, i) => pip.classList.toggle('on', i < team.timeouts));
   }
 
+  const IDENT_HOLD_MS = 8000;
+  const IDENT_SIZE = 320; // px the identity logos are scaled to (shown at 160)
+  let identFiles = null;
+  let identTimer = null;
+
+  // Builds the rotating identity logos. Each is loaded once and scaled down, then they take
+  // turns crossfading every IDENT_HOLD_MS.
+  async function setIdentity(files) {
+    const key = files.join('|');
+    if (key === identFiles) return;
+    identFiles = key;
+    clearInterval(identTimer);
+    const box = $('ident');
+    const urls = await Promise.all(files.map((f) => logoCutout('identity/' + encodeURIComponent(f), IDENT_SIZE)));
+    if (identFiles !== key) return;
+    box.replaceChildren(...urls.map((url) => {
+      const img = new Image();
+      img.src = url;
+      img.alt = '';
+      return img;
+    }));
+    let i = 0;
+    if (box.children.length) box.children[0].classList.add('on');
+    if (box.children.length > 1) {
+      identTimer = setInterval(() => {
+        box.children[i].classList.remove('on');
+        i = (i + 1) % box.children.length;
+        box.children[i].classList.add('on');
+      }, IDENT_HOLD_MS);
+    }
+  }
+
   function render(state) {
     $('bug').classList.toggle('hidden', !state.visible);
+    $('ident').classList.toggle('hidden', state.identityVisible === false);
     renderTeam('home', state.home, state.away, state);
     renderTeam('away', state.away, state.home, state);
 
@@ -281,6 +363,7 @@
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === 'state') render(msg.state);
+      if (msg.type === 'identity') setIdentity(msg.files);
     };
     ws.onclose = () => setTimeout(connect, RECONNECT_MS);
     ws.onerror = () => ws.close();

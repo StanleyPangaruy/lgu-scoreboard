@@ -6,6 +6,9 @@ const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const STATE_FILE = path.join(__dirname, 'state.json');
+const LOGO_DIR = path.join(__dirname, 'logo');
+// Station identity logos, shown in rotation at the top left of the overlay.
+const IDENTITY_DIR = path.join(__dirname, 'pictu');
 const TICK_MS = 100;
 const OT_LENGTH_SEC = 300;
 const BONUS_FOULS = 5;
@@ -16,16 +19,59 @@ const FILES = {
   '/control.html': ['control.html', 'text/html; charset=utf-8'],
   '/overlay.html': ['overlay.html', 'text/html; charset=utf-8'],
   '/brand.css': ['brand.css', 'text/css; charset=utf-8'],
+  '/logo-cutout.js': ['logo-cutout.js', 'text/javascript; charset=utf-8'],
   '/logo.png': ['cropped-Lopez-Quezon-FINAL-1.png', 'image/png'],
 };
 
-function newTeam(name, abbr, color) {
-  return { name, abbr, color, score: 0, fouls: 0, timeouts: 2 };
+const IMAGE_TYPES = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+};
+
+// Every image in logo/ is a team. "san_antonio.png" becomes "SAN ANTONIO".
+function scanTeams() {
+  let files = [];
+  try {
+    files = fs.readdirSync(LOGO_DIR);
+  } catch {
+    return [];
+  }
+  return files
+    .filter((file) => IMAGE_TYPES[path.extname(file).toLowerCase()])
+    .map((file) => {
+      const id = path.basename(file, path.extname(file));
+      const name = id.replace(/[_-]+/g, ' ').trim().toUpperCase();
+      return { id, name, abbr: name.replace(/\s+/g, '').slice(0, 3), logo: file };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+let teams = scanTeams();
+
+function scanIdentity() {
+  try {
+    return fs.readdirSync(IDENTITY_DIR)
+      .filter((file) => IMAGE_TYPES[path.extname(file).toLowerCase()])
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+}
+
+let identity = scanIdentity();
+
+function newTeam(name, abbr, color, logo = null) {
+  return { name, abbr, color, logo, score: 0, fouls: 0, timeouts: 2 };
 }
 
 function newGame(prev) {
   const keep = (side, name, abbr, color) =>
-    prev ? newTeam(prev[side].name, prev[side].abbr, prev[side].color) : newTeam(name, abbr, color);
+    prev
+      ? newTeam(prev[side].name, prev[side].abbr, prev[side].color, prev[side].logo)
+      : newTeam(name, abbr, color);
   const periodLengthSec = prev ? prev.periodLengthSec : 600;
   return {
     visible: prev ? prev.visible : true,
@@ -37,6 +83,7 @@ function newGame(prev) {
     clockRunning: false,
     shotClockMs: 24000,
     shotClockVisible: prev ? prev.shotClockVisible : true,
+    identityVisible: prev ? prev.identityVisible : true,
     possession: null,
     bonusFouls: BONUS_FOULS,
   };
@@ -107,6 +154,9 @@ const actions = {
   visible({ value }) {
     state.visible = !!value;
   },
+  identityVisible({ value }) {
+    state.identityVisible = !!value;
+  },
   nextPeriod() {
     stopClock();
     state.period = clamp(state.period + 1, 1, 9);
@@ -121,6 +171,11 @@ const actions = {
   // Label correction only: does not touch clock, fouls or timeouts.
   prevPeriod() {
     state.period = clamp(state.period - 1, 1, 9);
+  },
+  pickTeam({ team, id }) {
+    const pick = teams.find((t) => t.id === id);
+    if (!pick) return;
+    Object.assign(state[team], { name: pick.name, abbr: pick.abbr, logo: pick.logo });
   },
   team({ team, name, abbr, color }) {
     const t = state[team];
@@ -137,7 +192,7 @@ const actions = {
   },
 };
 
-const TEAM_ACTIONS = new Set(['score', 'fouls', 'timeouts', 'team']);
+const TEAM_ACTIONS = new Set(['score', 'fouls', 'timeouts', 'team', 'pickTeam']);
 const NUMERIC_FIELDS = ['delta', 'deltaMs', 'ms', 'seconds'];
 
 function handle(msg) {
@@ -152,8 +207,38 @@ function handle(msg) {
   broadcast();
 }
 
+// Only files found by scanning the folder are served, so no path tricks reach the disk.
+function serveImage(urlPath, prefix, dir, allowed, res) {
+  let file;
+  try {
+    file = decodeURIComponent(urlPath.slice(prefix.length));
+  } catch {
+    file = '';
+  }
+  if (!allowed.includes(file)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    return res.end('Not found');
+  }
+  fs.readFile(path.join(dir, file), (err, data) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      return res.end('Not found');
+    }
+    const type = IMAGE_TYPES[path.extname(file).toLowerCase()];
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
+    res.end(data);
+  });
+}
+
 const server = http.createServer((req, res) => {
-  const entry = FILES[req.url.split('?')[0]];
+  const urlPath = req.url.split('?')[0];
+  if (urlPath.startsWith('/logos/')) {
+    return serveImage(urlPath, '/logos/', LOGO_DIR, teams.map((t) => t.logo), res);
+  }
+  if (urlPath.startsWith('/identity/')) {
+    return serveImage(urlPath, '/identity/', IDENTITY_DIR, identity, res);
+  }
+  const entry = FILES[urlPath];
   if (!entry) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     return res.end('Not found');
@@ -179,6 +264,11 @@ function broadcast() {
 
 wss.on('connection', (ws, req) => {
   console.log(`[connect] ${req.headers['user-agent']}`);
+  // Re-read logo/ so logos added while the server runs show up on the next page load.
+  teams = scanTeams();
+  identity = scanIdentity();
+  ws.send(JSON.stringify({ type: 'teams', teams }));
+  ws.send(JSON.stringify({ type: 'identity', files: identity }));
   ws.send(JSON.stringify({ type: 'state', state }));
   ws.on('message', (raw) => {
     try {

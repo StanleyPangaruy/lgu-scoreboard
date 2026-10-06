@@ -66,6 +66,22 @@ address, and allow Node.js through Windows Firewall on private networks if promp
 There is no password: anyone on the same network who knows the address can open the control
 panel.
 
+## Teams and logos
+
+Every image in the `logo/` folder is a team. The file name becomes the team name, so
+`san_antonio.png` shows as **SAN ANTONIO**. To add a team, drop its logo into `logo/` and
+reload the control panel.
+
+Pick each side's team under **Setup**. The team's name and logo change together on the
+scorebug, and each logo appears at its own team's end.
+
+## Top-left identity logos
+
+Every image in the `pictu/` folder is shown at the top left of the overlay, one at a time,
+switching every 8 seconds. Add or remove images there and reload the overlay. The
+**Top-left logos** button on the control panel shows or hides them separately from the
+scorebug.
+
 ## Using the control panel
 
 | Control | What it does |
@@ -81,7 +97,8 @@ panel.
 | NEXT PERIOD | Moves to the next quarter or overtime and resets the clock |
 | ◀ Period label | Corrects the period label only |
 | Overlay: ON AIR / HIDDEN | Shows or hides the whole scorebug |
-| Setup | Team names, abbreviations, colours, minutes per quarter, RESET GAME |
+| Top-left logos: ON / OFF | Shows or hides the rotating identity logos |
+| Setup | Team dropdowns, stripe colours, minutes per quarter, RESET GAME |
 
 Keyboard shortcuts: **Space** starts or stops the clock, **R** resets the shot clock to 24,
 **F** resets it to 14.
@@ -118,5 +135,8 @@ which helps when a browser source is not showing.
 | `overlay.html` | The scorebug shown on stream |
 | `control.html` | The operator's control panel |
 | `brand.css` | Colour and font variables |
-| `cropped-Lopez-Quezon-FINAL-1.png` | Municipal seal, served as `/logo.png` |
+| `logo/` | One logo per team; file name = team name |
+| `pictu/` | Identity logos that rotate at the top left |
+| `logo-cutout.js` | Removes white logo backgrounds and scales large images down |
+| `cropped-Lopez-Quezon-FINAL-1.png` | Lopez seal, shown in the control panel header |
 | `CLAUDE.md` | Design rules and conventions for working on this project |
