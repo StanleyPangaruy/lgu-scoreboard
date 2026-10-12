@@ -102,6 +102,7 @@ function newGame(prev) {
     shotClockVisible: prev ? prev.shotClockVisible : true,
     identityVisible: prev ? prev.identityVisible : true,
     miniVisible: prev ? prev.miniVisible : true,
+    title: prev ? prev.title : 'Quezon Intertown Basketball Tournament 2026',
     possession: null,
     bonusFouls: BONUS_FOULS,
   };
@@ -174,6 +175,9 @@ const actions = {
   },
   identityVisible({ value }) {
     state.identityVisible = !!value;
+  },
+  title({ text }) {
+    if (typeof text === 'string') state.title = text.trim().slice(0, 80);
   },
   miniVisible({ value }) {
     state.miniVisible = !!value;

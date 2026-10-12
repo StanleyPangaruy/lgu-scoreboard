@@ -33,6 +33,28 @@
     transform: translateX(-50%);
     transition: opacity 350ms ease, transform 350ms ease;
   }
+  /* Tournament title strip, sitting on top of the scorebug's yellow line. */
+  .title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 6px);
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--lopez-navy-deep);
+    color: var(--lopez-yellow);
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .title.empty { display: none; }
+  .title span { display: inline-block; padding-top: 3px; }
+
   .bug.hidden {
     opacity: 0;
     transform: translateX(-50%) translateY(48px);
@@ -159,6 +181,7 @@
 </head>
 <body>
   <div class="bug hidden" id="bug">
+    <div class="title empty" id="title"><span></span></div>
     <div class="badge empty" id="home-badge"><img id="home-logo" alt=""></div>
 
     <div class="team home">
@@ -276,8 +299,20 @@
     [...$(side + '-pips').children].forEach((pip, i) => pip.classList.toggle('on', i < team.timeouts));
   }
 
+  // Squeezes a title horizontally when it is wider than its strip, instead of cutting it off.
+  function setTitle(el, text) {
+    const span = el.firstElementChild;
+    el.classList.toggle('empty', !text);
+    if (span.textContent === text) return;
+    span.textContent = text;
+    span.style.transform = '';
+    const room = el.clientWidth - 24;
+    if (span.offsetWidth > room) span.style.transform = 'scaleX(' + room / span.offsetWidth + ')';
+  }
+
   function render(state) {
     $('bug').classList.toggle('hidden', !state.visible);
+    setTitle($('title'), state.title || '');
     showIdentity(state.identityVisible !== false);
     renderTeam('home', state.home, state.away, state);
     renderTeam('away', state.away, state.home, state);

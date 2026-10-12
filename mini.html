@@ -27,14 +27,33 @@
     position: absolute;
     top: 48px;
     right: 48px;
-    display: flex;
-    height: 124px;
     border-radius: 8px;
     overflow: hidden;
     border: 3px solid var(--lopez-yellow);
     background: var(--lopez-red-deep);
     transition: opacity 350ms ease, transform 350ms ease;
   }
+  .mini-body { display: flex; height: 124px; }
+
+  /* Tournament title strip. width:0 + min-width:100% stops a long title widening the box. */
+  .title {
+    width: 0;
+    min-width: 100%;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--lopez-navy-deep);
+    color: var(--lopez-yellow);
+    font-size: 17px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .title.empty { display: none; }
+  .title span { display: inline-block; padding-top: 2px; }
   .mini.pos-tl { right: auto; left: 48px; }
   .mini.pos-bl { top: auto; bottom: 48px; right: auto; left: 48px; }
   .mini.pos-br { top: auto; bottom: 48px; }
@@ -154,6 +173,8 @@
 </head>
 <body>
   <div class="mini hidden" id="mini">
+    <div class="title empty" id="title"><span></span></div>
+    <div class="mini-body">
     <div class="time">
       <div class="clock" id="clock">10:00</div>
       <div class="status"><span id="period">1ST</span><span class="shot" id="shot">24</span></div>
@@ -179,6 +200,7 @@
         </div>
         <div class="score">0</div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -245,8 +267,20 @@
     score.textContent = team.score;
   }
 
+  // Squeezes a title horizontally when it is wider than its strip, instead of cutting it off.
+  function setTitle(el, text) {
+    const span = el.firstElementChild;
+    el.classList.toggle('empty', !text);
+    if (span.textContent === text) return;
+    span.textContent = text;
+    span.style.transform = '';
+    const room = el.clientWidth - 24;
+    if (span.offsetWidth > room) span.style.transform = 'scaleX(' + room / span.offsetWidth + ')';
+  }
+
   function render(state) {
     $('mini').classList.toggle('hidden', state.miniVisible === false);
+    setTitle($('title'), state.title || '');
     showIdentity(state.identityVisible !== false);
     renderTeam('home', state.home, state.away, state);
     renderTeam('away', state.away, state.home, state);

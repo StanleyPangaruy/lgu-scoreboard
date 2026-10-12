@@ -263,6 +263,7 @@
           <label>Colour<input type="color" data-k="color"></label>
         </div>
       </div>
+      <label>Tournament title (shown on both scoreboards; leave empty to hide)<input type="text" id="title-input" maxlength="80"></label>
       <label>Minutes per quarter<input type="number" id="period-min" min="1" max="20" step="1"></label>
       <div class="row">
         <button class="danger" data-a="resetGame" data-confirm="Reset the whole game? Scores, fouls and clock go back to zero.">RESET GAME</button>
@@ -330,6 +331,7 @@
     $('mini-toggle').textContent = 'Mini scoreboard: ' + (state.miniVisible ? 'ON' : 'OFF');
     $('mini-toggle').classList.toggle('on', state.miniVisible);
     setValue($('period-min'), state.periodLengthSec / 60);
+    setValue($('title-input'), state.title || '');
 
     for (const side of ['home', 'away']) {
       const team = state[side];
@@ -382,6 +384,7 @@
   document.addEventListener('change', (e) => {
     const input = e.target;
     if (input.id === 'period-min') return send({ action: 'periodLength', seconds: Number(input.value) * 60 });
+    if (input.id === 'title-input') return send({ action: 'title', text: input.value });
     const setup = input.closest('[data-team]');
     if (!setup) return;
     if (input.dataset.k === 'pick') send({ action: 'pickTeam', team: setup.dataset.team, id: input.value });

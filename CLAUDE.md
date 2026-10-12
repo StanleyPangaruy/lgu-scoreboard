@@ -137,6 +137,8 @@ One plain JSON object, owned by the server, broadcast in full on every change:
 - `gameClock` (seconds remaining, tenths under one minute), `clockRunning`
 - `shotClock` (24 / 14 reset), `shotClockVisible`
 - `possession` (`home` | `away` | `null`)
+- `title` — tournament title, shown as a navy strip with yellow text on top of both the
+  scorebug and the mini scoreboard; editable under Setup, empty hides the strip
 - `visible` — show/hide for the scorebug
 - `miniVisible` — show/hide for the mini scoreboard
 - `identityVisible` — show/hide for the top-left identity logos (independent of `visible`)

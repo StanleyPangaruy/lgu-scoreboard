@@ -108,6 +108,7 @@ scorebug.
 | NEXT PERIOD | Moves to the next quarter or overtime and resets the clock |
 | ◀ Period label | Corrects the period label only |
 | Overlay: ON AIR / HIDDEN | Shows or hides the whole scorebug |
+| Setup → Tournament title | Text shown on top of both scoreboards; empty hides it |
 | Top-left logos: ON / OFF | Shows or hides the rotating identity logos |
 | Mini scoreboard: ON / OFF | Shows or hides the mini scoreboard |
 | Setup | Team dropdowns, stripe colours, minutes per quarter, RESET GAME |
