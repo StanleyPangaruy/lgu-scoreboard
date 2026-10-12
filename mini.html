@@ -136,9 +136,15 @@
   }
   .badge img { width: 41px; height: 41px; object-fit: contain; opacity: 0; transition: opacity 250ms ease; }
   .badge img.ready { opacity: 1; }
-  /* Fits the widest current short name (GUM); longer ones are squeezed to fit. */
-  .abbr { width: 66px; font-size: 38px; line-height: 1; text-transform: uppercase; white-space: nowrap; }
-  .abbr span { display: inline-block; transform-origin: left center; }
+  /* Full town name. All fit as they are except SAN FRANCISCO, which is squeezed to fit. */
+  .who { width: 172px; display: flex; flex-direction: column; gap: 5px; }
+  .name { font-size: 32px; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+  .name span { display: inline-block; transform-origin: left center; }
+
+  /* Team fouls: five bars under the name, one lit per foul. */
+  .fouls { display: flex; gap: 4px; }
+  .fouls i { flex: 1; height: 6px; background: var(--lopez-red-deep); }
+  .fouls i.on { background: var(--lopez-yellow); }
   .poss {
     width: 0;
     height: 0;
@@ -185,7 +191,10 @@
         <div class="team">
           <div class="stripe"></div>
           <div class="badge"><img alt=""></div>
-          <div class="abbr"><span></span></div>
+          <div class="who">
+            <div class="name"><span></span></div>
+            <div class="fouls"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
           <div class="poss"></div>
         </div>
         <div class="score">0</div>
@@ -195,7 +204,10 @@
         <div class="team">
           <div class="stripe"></div>
           <div class="badge"><img alt=""></div>
-          <div class="abbr"><span></span></div>
+          <div class="who">
+            <div class="name"><span></span></div>
+            <div class="fouls"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
           <div class="poss"></div>
         </div>
         <div class="score">0</div>
@@ -241,14 +253,15 @@
     const row = $(side);
     const q = (sel) => row.querySelector(sel);
     q('.stripe').style.background = team.color;
-    const abbr = q('.abbr span');
-    if (abbr.textContent !== team.abbr) {
-      abbr.textContent = team.abbr;
-      abbr.style.transform = '';
-      const room = q('.abbr').clientWidth;
-      if (abbr.offsetWidth > room) abbr.style.transform = 'scaleX(' + room / abbr.offsetWidth + ')';
+    const name = q('.name span');
+    if (name.textContent !== team.name) {
+      name.textContent = team.name;
+      name.style.transform = '';
+      const room = q('.name').clientWidth;
+      if (name.offsetWidth > room) name.style.transform = 'scaleX(' + room / name.offsetWidth + ')';
     }
     q('.poss').classList.toggle('on', state.possession === side);
+    [...q('.fouls').children].forEach((bar, i) => bar.classList.toggle('on', i < team.fouls));
     q('.bonus').classList.toggle('on', other.fouls >= state.bonusFouls);
 
     const img = q('.badge img');

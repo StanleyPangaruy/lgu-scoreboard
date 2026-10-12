@@ -7,7 +7,7 @@ separate control panel page the operator uses to run the game.
 
 - `overlay.html` — the graphic OBS renders. Transparent background, display only, no controls.
 - `mini.html` — a separate compact scoreboard (clock, period, shot clock, BONUS tabs, logo,
-  short name and score per team), its own browser source. Bottom left by default; `?pos=tl`,
+  full town name with five team-foul bars under it, and score per team), its own browser source. Bottom left by default; `?pos=tl`,
   `tr`, `bl` or `br` picks the corner. Same rules as `overlay.html`.
 - `control.html` — the operator panel (scores, clock, fouls, etc.). Opened in a normal browser,
   an OBS custom dock, or a phone/tablet on the same network.
@@ -122,7 +122,7 @@ variables everywhere — no raw hex values elsewhere in the CSS.
 - Typography: a condensed bold sans for names and labels, and **tabular (monospaced) numerals**
   for the score and clocks so digits never shift width as they change.
 - Minimum text size on the 1080p canvas: 28px. Scores 64px+. Exception: the mini scoreboard
-  is deliberately compact (about 380×130px; scores 46px, short names 38px, BONUS tabs 13px).
+  is deliberately compact (about 485×156px; scores 46px, town names 32px, BONUS tabs 13px).
 - Transitions are short (200–400ms). Score changes get a brief yellow flash; nothing loops
   or pulses continuously except the final-seconds clock warning and the top-left identity
   logo rotation (requested by the operator).
@@ -153,9 +153,9 @@ team bonus on the 5th foul per quarter, 24/14 shot clock.
   to 24 and 14; next period; possession toggle; show/hide overlay.
 - Every destructive action (reset game, new period) needs a confirm.
 - Keyboard shortcuts for the clock (Space = start/stop) and shot clock resets.
-- Teams are chosen from a dropdown built from `logo/`, not typed in. The short name (`abbr`,
-  shown on the mini scoreboard) and stripe colour are still editable per team. Default short
-  names are generated in `scanTeams()` and kept unique (LUCBAN -> LCB, SAN FRANCISCO -> SFR).
+- Teams are chosen from a dropdown built from `logo/`, not typed in. The stripe colour is
+  still editable per team. Both scoreboards show the full town name (the operator asked for
+  no shortened names); `abbr` is still generated in `scanTeams()` but is not displayed.
 
 ## Working rules
 

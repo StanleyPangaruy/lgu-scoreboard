@@ -254,12 +254,10 @@
       <div class="setup-grid">
         <div data-team="home">
           <label>Home team<select data-k="pick"></select></label>
-          <label>Short name (mini scoreboard)<input type="text" data-k="abbr" maxlength="4"></label>
           <label>Colour<input type="color" data-k="color"></label>
         </div>
         <div data-team="away">
           <label>Away team<select data-k="pick"></select></label>
-          <label>Short name (mini scoreboard)<input type="text" data-k="abbr" maxlength="4"></label>
           <label>Colour<input type="color" data-k="color"></label>
         </div>
       </div>
@@ -349,7 +347,6 @@
 
       const setup = document.querySelector('[data-team="' + side + '"]');
       setValue(setup.querySelector('[data-k="color"]'), team.color);
-      setValue(setup.querySelector('[data-k="abbr"]'), team.abbr);
       const pick = teams.find((t) => t.logo === team.logo);
       setValue(setup.querySelector('[data-k="pick"]'), pick ? pick.id : '');
     }

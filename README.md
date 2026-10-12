@@ -50,9 +50,9 @@ To use a different port, set the `PORT` environment variable before starting.
 ### Mini scoreboard
 
 `http://localhost:3000/mini.html` is a second, compact scoreboard: clock, period and shot
-clock on the left, and each team's logo, short name and score stacked on the right. Add it as
+clock on the left, and each team's logo, town name, foul bars and score stacked on the right. Add it as
 its own browser source (1920×1080). It sits at the bottom left; add `?pos=tl`, `?pos=tr` or
-`?pos=br` to the address for another corner. Its short names can be changed under Setup.
+`?pos=br` to the address for another corner.
 
 ### OBS Studio
 
