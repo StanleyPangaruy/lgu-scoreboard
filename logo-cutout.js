@@ -70,7 +70,24 @@
       }
     }
     ctx.putImageData(data, 0, 0);
-    return canvas.toDataURL('image/png');
+
+    // Trim the empty margin so a seal drawn small on a big canvas (e.g. San Narciso's
+    // 1200x700 file) still fills its slot like the others.
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let i = 0; i < w * h; i++) {
+      if (bg[i]) continue;
+      const x = i % w, y = (i - x) / w;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    if (maxX < 0) return canvas.toDataURL('image/png');
+    const trimmed = document.createElement('canvas');
+    trimmed.width = maxX - minX + 1;
+    trimmed.height = maxY - minY + 1;
+    trimmed.getContext('2d').drawImage(canvas, -minX, -minY);
+    return trimmed.toDataURL('image/png');
   }
 
   window.logoCutout = function (src, size = SIZE) {
