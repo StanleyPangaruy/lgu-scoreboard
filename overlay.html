@@ -22,27 +22,6 @@
   /* ?bg=1 — test backdrop only, never used in OBS */
   body.test-bg { background: linear-gradient(135deg, #7a5a3a, #3d4a3a 60%, #555); }
 
-  /* Station identity, top left: the logos in pictu/ take turns. */
-  .ident {
-    position: absolute;
-    top: 48px;
-    left: 48px;
-    width: 160px;
-    height: 160px;
-    transition: opacity 350ms ease;
-  }
-  .ident.hidden { opacity: 0; }
-  .ident img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    opacity: 0;
-    transition: opacity 400ms ease;
-  }
-  .ident img.on { opacity: 1; }
-
   .bug {
     position: absolute;
     left: 50%;
@@ -179,8 +158,6 @@
 </style>
 </head>
 <body>
-  <div class="ident hidden" id="ident"></div>
-
   <div class="bug hidden" id="bug">
     <div class="badge empty" id="home-badge"><img id="home-logo" alt=""></div>
 
@@ -224,6 +201,7 @@
   </div>
 
 <script src="logo-cutout.js"></script>
+<script src="identity.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const MAX_TIMEOUTS = 3;
@@ -298,41 +276,9 @@
     [...$(side + '-pips').children].forEach((pip, i) => pip.classList.toggle('on', i < team.timeouts));
   }
 
-  const IDENT_HOLD_MS = 8000;
-  const IDENT_SIZE = 320; // px the identity logos are scaled to (shown at 160)
-  let identFiles = null;
-  let identTimer = null;
-
-  // Builds the rotating identity logos. Each is loaded once and scaled down, then they take
-  // turns crossfading every IDENT_HOLD_MS.
-  async function setIdentity(files) {
-    const key = files.join('|');
-    if (key === identFiles) return;
-    identFiles = key;
-    clearInterval(identTimer);
-    const box = $('ident');
-    const urls = await Promise.all(files.map((f) => logoCutout('identity/' + encodeURIComponent(f), IDENT_SIZE)));
-    if (identFiles !== key) return;
-    box.replaceChildren(...urls.map((url) => {
-      const img = new Image();
-      img.src = url;
-      img.alt = '';
-      return img;
-    }));
-    let i = 0;
-    if (box.children.length) box.children[0].classList.add('on');
-    if (box.children.length > 1) {
-      identTimer = setInterval(() => {
-        box.children[i].classList.remove('on');
-        i = (i + 1) % box.children.length;
-        box.children[i].classList.add('on');
-      }, IDENT_HOLD_MS);
-    }
-  }
-
   function render(state) {
     $('bug').classList.toggle('hidden', !state.visible);
-    $('ident').classList.toggle('hidden', state.identityVisible === false);
+    showIdentity(state.identityVisible !== false);
     renderTeam('home', state.home, state.away, state);
     renderTeam('away', state.away, state.home, state);
 

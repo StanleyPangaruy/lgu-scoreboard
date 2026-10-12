@@ -242,6 +242,9 @@
       <button class="minor" id="visible-toggle">Overlay: ON AIR</button>
       <button class="minor" id="identity-toggle">Top-left logos: ON</button>
     </div>
+    <div class="row">
+      <button class="minor" id="mini-toggle">Mini scoreboard: ON</button>
+    </div>
     <p class="keys">Keyboard: Space = start/stop clock · R = shot 24 · F = shot 14</p>
   </section>
 
@@ -251,10 +254,12 @@
       <div class="setup-grid">
         <div data-team="home">
           <label>Home team<select data-k="pick"></select></label>
+          <label>Short name (mini scoreboard)<input type="text" data-k="abbr" maxlength="4"></label>
           <label>Colour<input type="color" data-k="color"></label>
         </div>
         <div data-team="away">
           <label>Away team<select data-k="pick"></select></label>
+          <label>Short name (mini scoreboard)<input type="text" data-k="abbr" maxlength="4"></label>
           <label>Colour<input type="color" data-k="color"></label>
         </div>
       </div>
@@ -322,6 +327,8 @@
     $('visible-toggle').classList.toggle('on', state.visible);
     $('identity-toggle').textContent = 'Top-left logos: ' + (state.identityVisible ? 'ON' : 'OFF');
     $('identity-toggle').classList.toggle('on', state.identityVisible);
+    $('mini-toggle').textContent = 'Mini scoreboard: ' + (state.miniVisible ? 'ON' : 'OFF');
+    $('mini-toggle').classList.toggle('on', state.miniVisible);
     setValue($('period-min'), state.periodLengthSec / 60);
 
     for (const side of ['home', 'away']) {
@@ -340,6 +347,7 @@
 
       const setup = document.querySelector('[data-team="' + side + '"]');
       setValue(setup.querySelector('[data-k="color"]'), team.color);
+      setValue(setup.querySelector('[data-k="abbr"]'), team.abbr);
       const pick = teams.find((t) => t.logo === team.logo);
       setValue(setup.querySelector('[data-k="pick"]'), pick ? pick.id : '');
     }
@@ -353,6 +361,7 @@
     if (btn.id === 'shot-toggle') return send({ action: 'shotVisible', value: !state.shotClockVisible });
     if (btn.id === 'visible-toggle') return send({ action: 'visible', value: !state.visible });
     if (btn.id === 'identity-toggle') return send({ action: 'identityVisible', value: !state.identityVisible });
+    if (btn.id === 'mini-toggle') return send({ action: 'miniVisible', value: !state.miniVisible });
     if (btn.dataset.f === 'poss') {
       const side = btn.closest('section').id;
       return send({ action: 'possession', value: state.possession === side ? null : side });

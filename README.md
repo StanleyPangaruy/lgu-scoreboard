@@ -43,6 +43,13 @@ The server prints the addresses to use:
 
 To use a different port, set the `PORT` environment variable before starting.
 
+### Mini scoreboard
+
+`http://localhost:3000/mini.html` is a second, compact scoreboard: clock, period and shot
+clock on the left, and each team's logo, short name and score stacked on the right. Add it as
+its own browser source (1920×1080). It sits at the bottom left; add `?pos=tl`, `?pos=tr` or
+`?pos=br` to the address for another corner. Its short names can be changed under Setup.
+
 ### OBS Studio
 
 1. Under **Sources**, click **+** and choose **Browser**.
@@ -98,6 +105,7 @@ scorebug.
 | ◀ Period label | Corrects the period label only |
 | Overlay: ON AIR / HIDDEN | Shows or hides the whole scorebug |
 | Top-left logos: ON / OFF | Shows or hides the rotating identity logos |
+| Mini scoreboard: ON / OFF | Shows or hides the mini scoreboard |
 | Setup | Team dropdowns, stripe colours, minutes per quarter, RESET GAME |
 
 Keyboard shortcuts: **Space** starts or stops the clock, **R** resets the shot clock to 24,
@@ -133,6 +141,7 @@ which helps when a browser source is not showing.
 |---|---|
 | `server.js` | Web server, WebSocket relay, game clock |
 | `overlay.html` | The scorebug shown on stream |
+| `mini.html` | The compact mini scoreboard |
 | `control.html` | The operator's control panel |
 | `brand.css` | Colour and font variables |
 | `logo/` | One logo per team; file name = team name |

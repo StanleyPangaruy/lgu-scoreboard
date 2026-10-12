@@ -18,8 +18,10 @@ const FILES = {
   '/': ['control.html', 'text/html; charset=utf-8'],
   '/control.html': ['control.html', 'text/html; charset=utf-8'],
   '/overlay.html': ['overlay.html', 'text/html; charset=utf-8'],
+  '/mini.html': ['mini.html', 'text/html; charset=utf-8'],
   '/brand.css': ['brand.css', 'text/css; charset=utf-8'],
   '/logo-cutout.js': ['logo-cutout.js', 'text/javascript; charset=utf-8'],
+  '/identity.js': ['identity.js', 'text/javascript; charset=utf-8'],
   '/logo.png': ['cropped-Lopez-Quezon-FINAL-1.png', 'image/png'],
 };
 
@@ -39,14 +41,29 @@ function scanTeams() {
   } catch {
     return [];
   }
-  return files
+  const list = files
     .filter((file) => IMAGE_TYPES[path.extname(file).toLowerCase()])
     .map((file) => {
       const id = path.basename(file, path.extname(file));
       const name = id.replace(/[_-]+/g, ' ').trim().toUpperCase();
-      return { id, name, abbr: name.replace(/\s+/g, '').slice(0, 3), logo: file };
+      return { id, name, abbr: defaultAbbr(name) };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+  // Teams that would share an abbreviation (LUCBAN, LUCENA) use first letter + consonants.
+  for (const t of list) {
+    if (list.filter((o) => o.abbr === t.abbr).length > 1) {
+      const letters = t.name.replace(/[^A-Z]/g, '');
+      t.abbr = (letters[0] + letters.slice(1).replace(/[AEIOU]/g, '')).slice(0, 3);
+    }
+  }
+  return list.map((t) => ({ ...t, logo: files.find((f) => path.basename(f, path.extname(f)) === t.id) }));
+}
+
+// GUMACA -> GUM, SAN ANTONIO -> SAN, SAN FRANCISCO -> SFR (first letter + start of last word).
+function defaultAbbr(name) {
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return name.slice(0, 3);
+  return (words[0][0] + words[words.length - 1].slice(0, 2)).toUpperCase();
 }
 
 let teams = scanTeams();
@@ -84,6 +101,7 @@ function newGame(prev) {
     shotClockMs: 24000,
     shotClockVisible: prev ? prev.shotClockVisible : true,
     identityVisible: prev ? prev.identityVisible : true,
+    miniVisible: prev ? prev.miniVisible : true,
     possession: null,
     bonusFouls: BONUS_FOULS,
   };
@@ -156,6 +174,9 @@ const actions = {
   },
   identityVisible({ value }) {
     state.identityVisible = !!value;
+  },
+  miniVisible({ value }) {
+    state.miniVisible = !!value;
   },
   nextPeriod() {
     stopClock();
@@ -300,6 +321,7 @@ setInterval(() => {
 server.listen(PORT, () => {
   console.log('\nLopez basketball overlay is running.\n');
   console.log(`  OBS Browser Source : http://localhost:${PORT}/overlay.html  (1920x1080)`);
+  console.log(`  Mini scoreboard    : http://localhost:${PORT}/mini.html  (1920x1080)`);
   console.log(`  Control panel      : http://localhost:${PORT}/control.html`);
   for (const list of Object.values(os.networkInterfaces())) {
     for (const net of list) {

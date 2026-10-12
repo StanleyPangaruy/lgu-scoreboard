@@ -6,6 +6,9 @@ separate control panel page the operator uses to run the game.
 ## What this project is
 
 - `overlay.html` — the graphic OBS renders. Transparent background, display only, no controls.
+- `mini.html` — a separate compact scoreboard (clock, period, shot clock, BONUS tabs, logo,
+  short name and score per team), its own browser source. Bottom left by default; `?pos=tl`,
+  `tr`, `bl` or `br` picks the corner. Same rules as `overlay.html`.
 - `control.html` — the operator panel (scores, clock, fouls, etc.). Opened in a normal browser,
   an OBS custom dock, or a phone/tablet on the same network.
 - `server.js` — small Node server that serves both pages and relays state over WebSocket.
@@ -14,7 +17,9 @@ separate control panel page the operator uses to run the game.
 - `logo-cutout.js` — shared by both pages; strips the white background from team logos and
   scales large images down once in the browser.
 - `pictu/` — station identity logos (PICTU, Live Lopez, the Lopez seal). They take turns at
-  the top left of the overlay, crossfading every 8 seconds, in file-name order. Served as
+  the top left of both `overlay.html` and `mini.html` (code in `identity.js`), crossfading
+  every 8 seconds in file-name order. The current logo is picked from the wall clock, so both
+  pages stay in step when both are on air. Served as
   `/identity/<file>`. Some are 6000×6000 originals; never display them unscaled — always go
   through `logoCutout(src, size)`. Images with their own transparency are not cut out.
 - `state.json` — the current game, written by the server so a restart keeps the score.
@@ -116,7 +121,8 @@ variables everywhere — no raw hex values elsewhere in the CSS.
   `logo/` to do this. No other effects on logos. A team with no logo has no end cap.
 - Typography: a condensed bold sans for names and labels, and **tabular (monospaced) numerals**
   for the score and clocks so digits never shift width as they change.
-- Minimum text size on the 1080p canvas: 28px. Scores 64px+.
+- Minimum text size on the 1080p canvas: 28px. Scores 64px+. Exception: the mini scoreboard
+  is deliberately compact (about 380×130px; scores 46px, short names 38px, BONUS tabs 13px).
 - Transitions are short (200–400ms). Score changes get a brief yellow flash; nothing loops
   or pulses continuously except the final-seconds clock warning and the top-left identity
   logo rotation (requested by the operator).
@@ -132,6 +138,7 @@ One plain JSON object, owned by the server, broadcast in full on every change:
 - `shotClock` (24 / 14 reset), `shotClockVisible`
 - `possession` (`home` | `away` | `null`)
 - `visible` — show/hide for the scorebug
+- `miniVisible` — show/hide for the mini scoreboard
 - `identityVisible` — show/hide for the top-left identity logos (independent of `visible`)
 
 Rules follow FIBA defaults unless told otherwise: 10-minute quarters, 5-minute overtime,
@@ -144,8 +151,9 @@ team bonus on the 5th foul per quarter, 24/14 shot clock.
   to 24 and 14; next period; possession toggle; show/hide overlay.
 - Every destructive action (reset game, new period) needs a confirm.
 - Keyboard shortcuts for the clock (Space = start/stop) and shot clock resets.
-- Teams are chosen from a dropdown built from `logo/`, not typed in. The stripe colour is
-  still editable per team.
+- Teams are chosen from a dropdown built from `logo/`, not typed in. The short name (`abbr`,
+  shown on the mini scoreboard) and stripe colour are still editable per team. Default short
+  names are generated in `scanTeams()` and kept unique (LUCBAN -> LCB, SAN FRANCISCO -> SFR).
 
 ## Working rules
 

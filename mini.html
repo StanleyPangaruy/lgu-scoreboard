@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lopez Mini Scoreboard</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  html, body {
+    margin: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: transparent;
+    cursor: none;
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--white);
+    user-select: none;
+  }
+  /* ?bg=1 — test backdrop only, never used in OBS/vMix */
+  body.test-bg { background: linear-gradient(135deg, #7a5a3a, #3d4a3a 60%, #555); }
+
+  /* Corner comes from ?pos=tl, tr, bl or br; the script defaults to bl (bottom left). */
+  .mini {
+    position: absolute;
+    top: 48px;
+    right: 48px;
+    display: flex;
+    height: 124px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid var(--lopez-yellow);
+    background: var(--lopez-red-deep);
+    transition: opacity 350ms ease, transform 350ms ease;
+  }
+  .mini.pos-tl { right: auto; left: 48px; }
+  .mini.pos-bl { top: auto; bottom: 48px; right: auto; left: 48px; }
+  .mini.pos-br { top: auto; bottom: 48px; }
+  .mini.hidden { opacity: 0; transform: translateY(-16px); }
+  .mini.pos-bl.hidden, .mini.pos-br.hidden { transform: translateY(16px); }
+
+  /* Left column: game clock over period + shot clock. */
+  .time { width: 118px; display: flex; flex-direction: column; }
+  .clock {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44px;
+    line-height: 1;
+    background: var(--lopez-navy-deep);
+  }
+  .clock.warn { color: var(--shot-warn); }
+  .status {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--lopez-yellow);
+    color: var(--lopez-navy-deep);
+    font-size: 30px;
+    line-height: 1;
+  }
+  .shot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--lopez-navy-deep);
+    color: var(--lopez-yellow);
+    font-size: 20px;
+  }
+  .shot.warn { color: var(--shot-warn); }
+  .shot.off { display: none; }
+
+  .rows { display: flex; flex-direction: column; }
+  .row { flex: 1; display: flex; }
+  .row + .row { border-top: 2px solid var(--lopez-red-deep); }
+
+  /* Vertical BONUS tab: lit yellow for the team that gets to shoot. */
+  .bonus {
+    width: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--lopez-red-deep);
+    color: var(--lopez-red);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    transition: background 200ms ease, color 200ms ease;
+  }
+  .bonus span { transform: rotate(-90deg); white-space: nowrap; }
+  .bonus.on { background: var(--lopez-yellow); color: var(--lopez-navy-deep); }
+
+  .team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px 0 0;
+    background: var(--lopez-red);
+  }
+  .stripe { width: 5px; align-self: stretch; }
+  .badge {
+    width: 46px;
+    height: 46px;
+    flex: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--lopez-navy-deep);
+  }
+  .badge img { width: 41px; height: 41px; object-fit: contain; opacity: 0; transition: opacity 250ms ease; }
+  .badge img.ready { opacity: 1; }
+  /* Fits the widest current short name (GUM); longer ones are squeezed to fit. */
+  .abbr { width: 66px; font-size: 38px; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+  .abbr span { display: inline-block; transform-origin: left center; }
+  .poss {
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+    border-left-color: var(--lopez-yellow);
+    border-right-width: 0;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .poss.on { opacity: 1; }
+
+  .score {
+    position: relative;
+    width: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 46px;
+    line-height: 1;
+    background: var(--lopez-red-deep);
+  }
+  .score::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--lopez-yellow);
+    opacity: 0;
+  }
+  .score.flash::after { animation: flash 400ms ease-out; }
+  @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+</style>
+</head>
+<body>
+  <div class="mini hidden" id="mini">
+    <div class="time">
+      <div class="clock" id="clock">10:00</div>
+      <div class="status"><span id="period">1ST</span><span class="shot" id="shot">24</span></div>
+    </div>
+    <div class="rows">
+      <div class="row" id="home">
+        <div class="bonus"><span>BONUS</span></div>
+        <div class="team">
+          <div class="stripe"></div>
+          <div class="badge"><img alt=""></div>
+          <div class="abbr"><span></span></div>
+          <div class="poss"></div>
+        </div>
+        <div class="score">0</div>
+      </div>
+      <div class="row" id="away">
+        <div class="bonus"><span>BONUS</span></div>
+        <div class="team">
+          <div class="stripe"></div>
+          <div class="badge"><img alt=""></div>
+          <div class="abbr"><span></span></div>
+          <div class="poss"></div>
+        </div>
+        <div class="score">0</div>
+      </div>
+    </div>
+  </div>
+
+<script src="logo-cutout.js"></script>
+<script src="identity.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const RECONNECT_MS = 2000;
+  const last = { home: null, away: null };
+
+  const params = new URLSearchParams(location.search);
+  if (params.has('bg')) document.body.classList.add('test-bg');
+  // Bottom left unless ?pos= says otherwise.
+  const pos = ['tl', 'tr', 'bl', 'br'].includes(params.get('pos')) ? params.get('pos') : 'bl';
+  $('mini').classList.add('pos-' + pos);
+
+  function formatGameClock(ms) {
+    if (ms >= 60000) {
+      const total = Math.ceil(ms / 1000);
+      return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+    }
+    const tenths = Math.floor(ms / 100);
+    return Math.floor(tenths / 10) + '.' + (tenths % 10);
+  }
+
+  function formatShotClock(ms) {
+    if (ms >= 5000) return String(Math.ceil(ms / 1000));
+    const tenths = Math.floor(ms / 100);
+    return Math.floor(tenths / 10) + '.' + (tenths % 10);
+  }
+
+  function periodLabel(p) {
+    if (p <= 4) return p + ['ST', 'ND', 'RD', 'TH'][p - 1];
+    return p === 5 ? 'OT' : (p - 4) + 'OT';
+  }
+
+  function renderTeam(side, team, other, state) {
+    const row = $(side);
+    const q = (sel) => row.querySelector(sel);
+    q('.stripe').style.background = team.color;
+    const abbr = q('.abbr span');
+    if (abbr.textContent !== team.abbr) {
+      abbr.textContent = team.abbr;
+      abbr.style.transform = '';
+      const room = q('.abbr').clientWidth;
+      if (abbr.offsetWidth > room) abbr.style.transform = 'scaleX(' + room / abbr.offsetWidth + ')';
+    }
+    q('.poss').classList.toggle('on', state.possession === side);
+    q('.bonus').classList.toggle('on', other.fouls >= state.bonusFouls);
+
+    const img = q('.badge img');
+    const src = team.logo ? 'logos/' + encodeURIComponent(team.logo) : '';
+    q('.badge').style.display = src ? '' : 'none';
+    if (img.dataset.want !== src) img.classList.remove('ready');
+    setLogo(img, src, (shown) => img.classList.toggle('ready', shown));
+
+    const score = q('.score');
+    if (last[side] !== null && last[side] !== team.score) {
+      score.classList.remove('flash');
+      void score.offsetWidth;
+      score.classList.add('flash');
+    }
+    last[side] = team.score;
+    score.textContent = team.score;
+  }
+
+  function render(state) {
+    $('mini').classList.toggle('hidden', state.miniVisible === false);
+    showIdentity(state.identityVisible !== false);
+    renderTeam('home', state.home, state.away, state);
+    renderTeam('away', state.away, state.home, state);
+
+    $('clock').textContent = formatGameClock(state.gameClockMs);
+    $('clock').classList.toggle('warn', state.gameClockMs > 0 && state.gameClockMs < 10000);
+    $('period').textContent = periodLabel(state.period);
+
+    const shot = $('shot');
+    shot.classList.toggle('off', !state.shotClockVisible);
+    shot.textContent = formatShotClock(state.shotClockMs);
+    shot.classList.toggle('warn', state.shotClockMs < 5000);
+  }
+
+  let ws = null;
+  function report(text) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'log', text: 'mini: ' + text }));
+  }
+  window.onerror = (message, src, line) => report('ERROR ' + message + ' @ line ' + line);
+
+  function connect() {
+    ws = new WebSocket('ws://' + location.host);
+    ws.onopen = () => report('viewport ' + innerWidth + 'x' + innerHeight);
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'state') render(msg.state);
+      if (msg.type === 'identity') setIdentity(msg.files);
+    };
+    ws.onclose = () => setTimeout(connect, RECONNECT_MS);
+    ws.onerror = () => ws.close();
+  }
+  connect();
+</script>
+</body>
+</html>
