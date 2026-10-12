@@ -33,6 +33,10 @@ npm install
 npm start
 ```
 
+On Windows you can instead double-click **`start-server.bat`**. It installs what is needed on
+the first run, starts the server, and opens the control panel in your browser. Keep its
+window open during the game; closing it stops the server.
+
 The server prints the addresses to use:
 
 | Page | Address |
