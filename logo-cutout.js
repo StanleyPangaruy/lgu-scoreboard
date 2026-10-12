@@ -31,6 +31,25 @@
     const corners = [0, w - 1, (h - 1) * w, h * w - 1];
     if (corners.some((i) => px[i * 4 + 3] < 255)) return canvas.toDataURL('image/png');
 
+    // Screenshot-style black bars along an edge (e.g. San Narciso's file) are painted white
+    // first, so they are removed along with the white background. A bar starts with a line
+    // that is almost all black and continues through its softer inner edge.
+    const brightest = (i) => Math.max(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
+    const whiten = (i) => { px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = 255; };
+    const clearBar = (lines, length, at) => {
+      for (let n = 0; n < lines; n++) {
+        const limit = n === 0 ? 48 : 200;
+        let dark = 0;
+        for (let k = 0; k < length; k++) if (brightest(at(n, k)) < limit) dark++;
+        if (dark < length * 0.9) return;
+        for (let k = 0; k < length; k++) whiten(at(n, k));
+      }
+    };
+    clearBar(h >> 2, w, (n, k) => n * w + k);               // top
+    clearBar(h >> 2, w, (n, k) => (h - 1 - n) * w + k);     // bottom
+    clearBar(w >> 2, h, (n, k) => k * w + n);               // left
+    clearBar(w >> 2, h, (n, k) => k * w + (w - 1 - n));     // right
+
     const lightness = (i) => Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
     const isBg = (i) => px[i * 4 + 3] < 16 || lightness(i) >= BG_MIN;
 

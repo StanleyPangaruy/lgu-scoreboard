@@ -67,58 +67,58 @@ These are hard rules — the overlay is composited over live video.
 
 ## Brand colours
 
-Sampled directly from the seal. They are defined once in `brand.css`; reference the
-variables everywhere — no raw hex values elsewhere in the CSS.
+All colours are defined once in `brand.css`; reference the variables everywhere — no raw hex
+values elsewhere in the CSS. There are two palettes.
+
+### Scoreboards (`overlay.html`, `mini.html`) — "Serbisyo Basta Ubana" logo
+
+Sampled from the SBU logo the operator supplied. The pages use the `--board-*` role names,
+not the raw colours, so a future re-skin only touches `brand.css`.
 
 ```css
-:root {
-  /* Primary */
-  --lopez-red:        #CE1126; /* main panel colour (chosen by the operator, not from the seal) */
-  --lopez-red-deep:   #7A0A19; /* score boxes, lower strip */
-  --lopez-yellow:     #FFF600; /* seal ring — main accent */
-  --lopez-navy:       #080D6B; /* seal lettering — control panel */
-  --lopez-navy-deep:  #010441; /* seal backing, text on yellow */
+--sbu-navy:     #040263;
+--sbu-red:      #ED0000;
+--sbu-gold:     #F0A00A;
+--sbu-red-deep: #B00000;  /* the same red, darker: a shade, not a fifth colour */
 
-  /* Secondary */
-  --lopez-sky:        #0E91F8; /* sky / river */
-  --lopez-sky-light:  #39A8FF;
-  --lopez-field:      #B7DE00; /* rice-field green */
-  --lopez-field-deep: #1B7900; /* treeline green */
-  --lopez-earth:      #2F1A0A; /* field grid lines / mountains */
-
-  /* Neutrals */
-  --white:            #FFFFFF;
-  --black:            #000000;
-}
+--board-panel:      var(--sbu-red);       /* the body: team name panels */
+--board-panel-deep: var(--sbu-red-deep);  /* score boxes */
+--board-deep:       var(--sbu-navy);      /* the one dark anchor: clock, lower strip, ends, title */
+--board-accent:     var(--sbu-gold);      /* thin trim only */
 ```
 
-### How to use them
+**Red is the main colour.** The operator tried white panels and a white/red/blue/gold
+patchwork and rejected both as a messy colour mix. Keep it disciplined:
 
-- **Scorebug body:** `--lopez-red`, with `--lopez-red-deep` for score boxes and the lower strip.
-- **Seal backing:** `--lopez-navy-deep`, so the seal's yellow ring stands off the red.
-- **Control panel:** stays navy, so its red STOP and RESET buttons remain distinct.
-- **Accents, borders, active states, score highlight:** `--lopez-yellow`.
-- **Text on red:** white for scores and names, yellow for labels (PERIOD, FOULS).
-- **Text on yellow:** `--lopez-navy-deep` only. Never white on yellow — it is unreadable.
-- **BONUS:** a yellow chip with navy text. Do not use the greens or blues as text on red.
-- **Final 10 seconds:** the clock block turns white with red digits (red on red would vanish).
-- **Secondary info** (timeouts, possession arrow, lower thirds): `--lopez-sky`.
-- **Positive / go states** on the control panel (clock running): `--lopez-field-deep`.
-- Greens and earth brown are supporting colours only — never use them for large panels.
-- Team colours are per-game data, not brand colours. Show them as a small stripe or chip
-  beside the team name; the scorebug frame always stays red and yellow. A red team colour will not show against the
-  frame — pick a different shade for that team.
-- Do not introduce colours outside this palette without asking. Shot-clock/final-seconds
-  warning reds are the allowed exceptions (`--warn-red`, `--shot-warn`).
+- **Red** is the body. Depth comes from a darker red, never from another hue.
+- **Navy** is the single dark anchor: clock, lower strip, logo end caps, title strip.
+- **White** is for lettering only — names, scores, clocks, title — never a panel background.
+- **Gold** is trim, used sparingly: the top line, small labels (FOULS, period), the BONUS
+  chip, timeout marks, and the mini shot-clock circle. No large gold blocks.
+- Gold lettering goes on navy only; on red it is too low in contrast.
+- **Mini foul bars:** white when lit, darker red when not.
+- **Final 10 seconds:** the big clock block turns white with red digits — the one time a
+  white block appears, so it stands out.
+- Team colours are per-game data, shown as a small stripe beside the team name. A red or
+  navy team colour will not show against the frame — pick a different shade for that team.
+- Allowed extras: `--shot-warn`, `--white`, `--black`. Do not introduce other colours, or
+  give white or gold a large surface, without asking.
+
+### Control panel (`control.html`) — Bayan ng Lopez seal
+
+The `--lopez-*` variables (navy, yellow, sky, field green), sampled from the seal. The panel
+stays navy so its red STOP and RESET buttons remain distinct; `--lopez-field-deep` marks go
+states. The scoreboards no longer use these.
 
 ## Design direction
 
 - Broadcast-style scorebug, anchored bottom-centre or top-left. Bold, flat, high contrast —
   it must read on a phone screen at 720p.
-- Each team's logo sits at its own outer end of the scorebug, directly on a navy end cap.
-  The logo files are square images on white; `logo-cutout.js` removes the white that touches
-  the image edge in the browser (white inside a seal is kept). Never edit the files in
-  `logo/` to do this. No other effects on logos. A team with no logo has no end cap.
+- Each team's logo sits at its own outer end of the scorebug. The logo files are square
+  images on white; `logo-cutout.js` removes the white that touches the image edge in the
+  browser (white inside a seal is kept), paints out black bars along an edge, and trims the
+  empty margin. Never edit the files in `logo/` to do this. No other effects on logos. A team
+  with no logo has no end block.
 - Typography: a condensed bold sans for names and labels, and **tabular (monospaced) numerals**
   for the score and clocks so digits never shift width as they change.
 - Minimum text size on the 1080p canvas: 28px. Scores 64px+. Exception: the mini scoreboard

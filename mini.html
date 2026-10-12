@@ -29,8 +29,8 @@
     right: 48px;
     border-radius: 8px;
     overflow: hidden;
-    border: 3px solid var(--lopez-yellow);
-    background: var(--lopez-red-deep);
+    border: 3px solid var(--board-accent);
+    background: var(--board-deep);
     transition: opacity 350ms ease, transform 350ms ease;
   }
   .mini-body { display: flex; height: 124px; }
@@ -44,8 +44,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: var(--lopez-navy-deep);
-    color: var(--lopez-yellow);
+    background: var(--board-deep);
     font-size: 17px;
     line-height: 1;
     letter-spacing: 0.04em;
@@ -61,7 +60,7 @@
   .mini.pos-bl.hidden, .mini.pos-br.hidden { transform: translateY(16px); }
 
   /* Left column: game clock over period + shot clock. */
-  .time { width: 118px; display: flex; flex-direction: column; }
+  .time { width: 118px; display: flex; flex-direction: column; background: var(--board-deep); }
   .clock {
     flex: 1;
     display: flex;
@@ -69,7 +68,6 @@
     justify-content: center;
     font-size: 44px;
     line-height: 1;
-    background: var(--lopez-navy-deep);
   }
   .clock.warn { color: var(--shot-warn); }
   .status {
@@ -78,8 +76,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: var(--lopez-yellow);
-    color: var(--lopez-navy-deep);
+    color: var(--board-accent);
     font-size: 30px;
     line-height: 1;
   }
@@ -90,38 +87,38 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--lopez-navy-deep);
-    color: var(--lopez-yellow);
+    background: var(--board-accent);
+    color: var(--board-deep);
     font-size: 20px;
   }
-  .shot.warn { color: var(--shot-warn); }
+  .shot.warn { background: var(--white); color: var(--board-panel); }
   .shot.off { display: none; }
 
   .rows { display: flex; flex-direction: column; }
   .row { flex: 1; display: flex; }
-  .row + .row { border-top: 2px solid var(--lopez-red-deep); }
+  .row + .row { border-top: 2px solid var(--board-deep); }
 
-  /* Vertical BONUS tab: lit yellow for the team that gets to shoot. */
+  /* Vertical BONUS tab: lit gold for the team that gets to shoot. */
   .bonus {
     width: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--lopez-red-deep);
-    color: var(--lopez-red);
+    background: var(--board-deep);
+    color: color-mix(in srgb, var(--white) 25%, var(--board-deep));
     font-size: 13px;
     letter-spacing: 0.06em;
     transition: background 200ms ease, color 200ms ease;
   }
   .bonus span { transform: rotate(-90deg); white-space: nowrap; }
-  .bonus.on { background: var(--lopez-yellow); color: var(--lopez-navy-deep); }
+  .bonus.on { background: var(--board-accent); color: var(--board-deep); }
 
   .team {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 0 8px 0 0;
-    background: var(--lopez-red);
+    background: var(--board-panel);
   }
   .stripe { width: 5px; align-self: stretch; }
   .badge {
@@ -132,7 +129,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--lopez-navy-deep);
+    background: var(--board-deep);
   }
   .badge img { width: 41px; height: 41px; object-fit: contain; opacity: 0; transition: opacity 250ms ease; }
   .badge img.ready { opacity: 1; }
@@ -143,13 +140,13 @@
 
   /* Team fouls: five bars under the name, one lit per foul. */
   .fouls { display: flex; gap: 4px; }
-  .fouls i { flex: 1; height: 6px; background: var(--lopez-red-deep); }
-  .fouls i.on { background: var(--lopez-yellow); }
+  .fouls i { flex: 1; height: 6px; background: var(--board-panel-deep); }
+  .fouls i.on { background: var(--white); }
   .poss {
     width: 0;
     height: 0;
     border: 8px solid transparent;
-    border-left-color: var(--lopez-yellow);
+    border-left-color: var(--white);
     border-right-width: 0;
     opacity: 0;
     transition: opacity 200ms ease;
@@ -164,13 +161,13 @@
     justify-content: center;
     font-size: 46px;
     line-height: 1;
-    background: var(--lopez-red-deep);
+    background: var(--board-panel-deep);
   }
   .score::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--lopez-yellow);
+    background: var(--board-accent);
     opacity: 0;
   }
   .score.flash::after { animation: flash 400ms ease-out; }

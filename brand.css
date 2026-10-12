@@ -1,5 +1,18 @@
-/* Colours sampled from the Bayan ng Lopez seal. Use these variables everywhere. */
+/* Use these variables everywhere; no raw hex values in the pages. */
 :root {
+  /* Scoreboards (overlay.html, mini.html): sampled from the "Serbisyo Basta Ubana" logo. */
+  --sbu-navy: #040263;
+  --sbu-red: #ED0000;
+  --sbu-gold: #F0A00A;
+
+  --sbu-red-deep: #B00000;         /* the same red, darker: a shade, not a fifth colour */
+
+  --board-panel: var(--sbu-red);            /* the body: team name panels */
+  --board-panel-deep: var(--sbu-red-deep);  /* score boxes */
+  --board-deep: var(--sbu-navy);            /* the one dark anchor: clock, lower strip, ends, title */
+  --board-accent: var(--sbu-gold);          /* thin trim only: top line, labels, BONUS, timeouts */
+
+  /* Control panel: sampled from the Bayan ng Lopez seal. */
   /* Primary */
   --lopez-red: #CE1126;      /* main panel colour */
   --lopez-red-deep: #7A0A19; /* score boxes, lower strip */

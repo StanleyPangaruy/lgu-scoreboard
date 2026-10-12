@@ -28,24 +28,23 @@
     bottom: 56px;
     display: flex;
     height: 134px;
-    border-top: 6px solid var(--lopez-yellow);
-    background: var(--lopez-red);
+    border-top: 4px solid var(--board-accent);
+    background: var(--board-panel);
     transform: translateX(-50%);
     transition: opacity 350ms ease, transform 350ms ease;
   }
-  /* Tournament title strip, sitting on top of the scorebug's yellow line. */
+  /* Tournament title strip, sitting on top of the scorebug's gold line. */
   .title {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 4px);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: var(--lopez-navy-deep);
-    color: var(--lopez-yellow);
+    background: var(--board-deep);
     font-size: 28px;
     line-height: 1;
     letter-spacing: 0.06em;
@@ -60,14 +59,13 @@
     transform: translateX(-50%) translateY(48px);
   }
 
-  /* Team logo at each outer end. logo-cutout.js removes the white around each logo, so the
-     seal sits directly on the navy end cap. */
+  /* Team logo at each outer end, on a navy end cap. */
   .badge {
     width: 132px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--lopez-navy-deep);
+    background: var(--board-deep);
   }
   .badge.empty { display: none; }
   .badge img {
@@ -88,7 +86,7 @@
     align-items: center;
     gap: 18px;
     padding: 0 20px;
-    background: var(--lopez-red-deep);
+    background: var(--board-deep);
     font-size: 28px;
     line-height: 1;
   }
@@ -113,8 +111,8 @@
     opacity: 0;
     transition: opacity 200ms ease;
   }
-  .home .poss { border-left-color: var(--lopez-yellow); border-right-width: 0; }
-  .away .poss { border-right-color: var(--lopez-yellow); border-left-width: 0; }
+  .home .poss { border-left-color: var(--white); border-right-width: 0; }
+  .away .poss { border-right-color: var(--white); border-left-width: 0; }
   .poss.on { opacity: 1; }
 
   .score {
@@ -126,31 +124,31 @@
     justify-content: center;
     font-size: 76px;
     line-height: 1;
-    background: var(--lopez-red-deep);
+    background: var(--board-panel-deep);
   }
   .score::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--lopez-yellow);
+    background: var(--board-accent);
     opacity: 0;
   }
   .score.flash::after { animation: flash 400ms ease-out; }
   @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
 
-  .label { color: var(--lopez-yellow); }
+  .label { color: var(--board-accent); }
   .bonus {
     padding: 3px 10px 1px;
-    background: var(--lopez-yellow);
-    color: var(--lopez-navy-deep);
+    background: var(--board-accent);
+    color: var(--board-deep);
     opacity: 0;
     transition: opacity 200ms ease;
   }
   .bonus.on { opacity: 1; }
   .pips { display: flex; gap: 7px; margin-left: auto; }
   .away .pips { margin-left: 0; margin-right: auto; }
-  .pip { width: 26px; height: 10px; background: var(--lopez-yellow); opacity: 0.22; }
-  .pip.on { opacity: 1; }
+  .pip { width: 26px; height: 10px; background: color-mix(in srgb, var(--white) 18%, var(--board-deep)); }
+  .pip.on { background: var(--board-accent); }
 
   .center { width: 250px; display: flex; flex-direction: column; }
   .clock {
@@ -160,11 +158,10 @@
     justify-content: center;
     font-size: 70px;
     line-height: 1;
-    background: var(--lopez-yellow);
-    color: var(--lopez-navy-deep);
+    background: var(--board-deep);
   }
-  .clock.warn { background: var(--white); color: var(--lopez-red); }
-  .center-sub { height: 42px; display: flex; background: var(--lopez-red-deep); }
+  .clock.warn { background: var(--white); color: var(--board-panel); }
+  .center-sub { height: 42px; display: flex; background: var(--board-deep); }
   .period, .shot {
     flex: 1;
     display: flex;
@@ -173,8 +170,9 @@
     font-size: 32px;
     line-height: 1;
   }
-  .period { color: var(--lopez-yellow); }
-  .shot { background: var(--black); color: var(--lopez-yellow); }
+  .period { color: var(--board-accent); }
+  .shot { color: var(--white); }
+  .period + .shot { border-left: 2px solid color-mix(in srgb, var(--white) 18%, var(--board-deep)); }
   .shot.warn { color: var(--shot-warn); }
   .shot.off { display: none; }
 </style>
