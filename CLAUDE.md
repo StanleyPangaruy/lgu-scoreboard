@@ -139,12 +139,32 @@ One plain JSON object, owned by the server, broadcast in full on every change:
 - `possession` (`home` | `away` | `null`)
 - `title` — tournament title, shown as a navy strip with yellow text on top of both the
   scorebug and the mini scoreboard; editable under Setup, empty hides the strip
+- `run` (`team`, `points`, `against`, `startAt`) — the current scoring run, NBA-style
+  ("12-2 run"): the most recent stretch in which one team outscored the other by the widest
+  margin, with the other team allowed at most a third of the running team's points. Worked
+  out by `findRun()` from `scoreLog` (recent baskets with `playedMs` timestamps). The
+  operator explicitly did not want runs that always read "N-0". Duration on screen is
+  `playedMs - run.startAt`, i.e. game-clock time since the basket before the run began.
+  The mini scoreboard's "TEAM 12-2 RUN IN THE LAST 3:10" tab is automatic (the operator did
+  not want to toggle it): `announceRun()` sets `runVisible` for 15 seconds each time the
+  running team scores while the run's margin (`points - against`) is `runThreshold` (default
+  7) or more, so 7-0, 9-2, 12-2 and 15-4 show but 8-2 does not. `runAuto` is the on/off
+  switch for the whole feature. These definitions came from the operator: 7-0/8-0 is a
+  mini-run and a run need not be unanswered (12-2, 15-4). Do not add a "Kill Shot" label for
+  10-0 runs: it was added once unasked and the operator had it removed
+- `timeoutsTotal` — how many timeouts each team starts with (operator-set, 0–20, default 2).
+  Changing it gives both teams that many. The operator is unsure of the league's timeout
+  rules, so the server never refills timeouts by itself: no half-time or overtime reset.
+  `timeoutsVisible` shows or hides timeouts on both scoreboards: marks on the big one, and on
+  the mini a separate "T.O." tab beside the scoreboard. The operator does not want timeouts
+  inside the mini's score box
 - `visible` — show/hide for the scorebug
 - `miniVisible` — show/hide for the mini scoreboard
 - `identityVisible` — show/hide for the top-left identity logos (independent of `visible`)
 
 Rules follow FIBA defaults unless told otherwise: 10-minute quarters, 5-minute overtime,
-team bonus on the 5th foul per quarter, 24/14 shot clock.
+team bonus on the 5th foul per quarter, 24/14 shot clock. Timeouts are the exception: they
+are fully manual (see `timeoutsTotal`).
 
 ## Control panel requirements
 

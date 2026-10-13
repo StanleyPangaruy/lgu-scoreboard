@@ -145,9 +145,11 @@
     transition: opacity 200ms ease;
   }
   .bonus.on { opacity: 1; }
-  .pips { display: flex; gap: 7px; margin-left: auto; }
-  .away .pips { margin-left: 0; margin-right: auto; }
-  .pip { width: 26px; height: 10px; background: color-mix(in srgb, var(--white) 18%, var(--board-deep)); }
+  /* One mark per timeout. They narrow to share the space when there are many. */
+  .pips { display: flex; gap: 7px; margin-left: auto; width: 150px; justify-content: flex-end; }
+  .away .pips { margin-left: 0; margin-right: auto; justify-content: flex-start; }
+  .pips.off { display: none; }
+  .pip { flex: 0 1 26px; height: 10px; background: color-mix(in srgb, var(--white) 18%, var(--board-deep)); }
   .pip.on { background: var(--board-accent); }
 
   .center { width: 250px; display: flex; flex-direction: column; }
@@ -225,19 +227,11 @@
 <script src="identity.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
-  const MAX_TIMEOUTS = 3;
   const RECONNECT_MS = 2000;
   const last = { home: null, away: null };
 
   if (new URLSearchParams(location.search).has('bg')) document.body.classList.add('test-bg');
 
-  for (const side of ['home', 'away']) {
-    for (let i = 0; i < MAX_TIMEOUTS; i++) {
-      const pip = document.createElement('span');
-      pip.className = 'pip';
-      $(side + '-pips').appendChild(pip);
-    }
-  }
 
   function formatGameClock(ms) {
     if (ms >= 60000) {
@@ -294,7 +288,13 @@
     // BONUS shows on the team that gets to shoot.
     $(side + '-bonus').classList.toggle('on', other.fouls >= state.bonusFouls);
     $(side + '-poss').classList.toggle('on', state.possession === side);
-    [...$(side + '-pips').children].forEach((pip, i) => pip.classList.toggle('on', i < team.timeouts));
+    // As many marks as the team started with (or has, if the operator added more).
+    const pips = $(side + '-pips');
+    const total = Math.max(state.timeoutsTotal || 0, team.timeouts);
+    while (pips.children.length < total) pips.appendChild(Object.assign(document.createElement('span'), { className: 'pip' }));
+    while (pips.children.length > total) pips.lastChild.remove();
+    [...pips.children].forEach((pip, i) => pip.classList.toggle('on', i < team.timeouts));
+    pips.classList.toggle('off', state.timeoutsVisible === false);
   }
 
   // Squeezes a title horizontally when it is wider than its strip, instead of cutting it off.

@@ -23,15 +23,17 @@
   body.test-bg { background: linear-gradient(135deg, #7a5a3a, #3d4a3a 60%, #555); }
 
   /* Corner comes from ?pos=tl, tr, bl or br; the script defaults to bl (bottom left). */
-  .mini {
+  .mini-wrap {
     position: absolute;
     top: 48px;
     right: 48px;
+    transition: opacity 350ms ease, transform 350ms ease;
+  }
+  .mini {
     border-radius: 8px;
     overflow: hidden;
     border: 3px solid var(--board-accent);
     background: var(--board-deep);
-    transition: opacity 350ms ease, transform 350ms ease;
   }
   .mini-body { display: flex; height: 124px; }
 
@@ -53,11 +55,40 @@
   }
   .title.empty { display: none; }
   .title span { display: inline-block; padding-top: 2px; }
-  .mini.pos-tl { right: auto; left: 48px; }
-  .mini.pos-bl { top: auto; bottom: 48px; right: auto; left: 48px; }
-  .mini.pos-br { top: auto; bottom: 48px; }
-  .mini.hidden { opacity: 0; transform: translateY(-16px); }
-  .mini.pos-bl.hidden, .mini.pos-br.hidden { transform: translateY(16px); }
+  .mini-wrap.pos-tl { right: auto; left: 48px; }
+  .mini-wrap.pos-bl { top: auto; bottom: 48px; right: auto; left: 48px; }
+  .mini-wrap.pos-br { top: auto; bottom: 48px; }
+  .mini-wrap.hidden { opacity: 0; transform: translateY(-16px); }
+  .mini-wrap.pos-bl.hidden, .mini-wrap.pos-br.hidden { transform: translateY(16px); }
+
+  /* Scoring run tab ("LUCBAN 10-0 RUN"). It hangs off the scoreboard on the side facing the
+     middle of the screen: above it in the bottom corners, below it in the top corners. */
+  .run {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 2px solid var(--board-accent);
+    background: var(--board-deep);
+    font-size: 24px;
+    line-height: 1;
+    white-space: nowrap;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 300ms ease, transform 300ms ease;
+  }
+  .pos-bl .run, .pos-br .run { top: auto; bottom: calc(100% + 6px); transform: translateY(10px); }
+  .pos-tr .run, .pos-br .run { left: auto; right: 0; }
+  .mini-wrap .run.on { opacity: 1; transform: none; }
+  .run span { padding-top: 2px; }
+  .run-count { color: var(--board-accent); }
+  .run-time { font-size: 20px; }
 
   /* Left column: game clock over period + shot clock. */
   .time { width: 118px; display: flex; flex-direction: column; background: var(--board-deep); }
@@ -153,6 +184,34 @@
   }
   .poss.on { opacity: 1; }
 
+  /* Timeouts left: a separate tab beside the scoreboard, not inside it (the operator asked
+     for it to be kept out of the score box). One cell per team, level with that team's row.
+     Numbers, so it works for any count. Shown or hidden by the operator. */
+  .tos {
+    position: absolute;
+    left: calc(100% + 6px);
+    bottom: 0;
+    width: 52px;
+    height: 130px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--board-accent);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--board-deep);
+    line-height: 1;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 300ms ease, transform 300ms ease;
+  }
+  .pos-tr .tos, .pos-br .tos { left: auto; right: calc(100% + 6px); transform: translateX(10px); }
+  .mini-wrap .tos.on { opacity: 1; transform: none; }
+  .tos div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .tos div + div { border-top: 2px solid color-mix(in srgb, var(--white) 18%, var(--board-deep)); }
+  .tos small { font-size: 12px; letter-spacing: 0.04em; color: var(--board-accent); }
+  .tos b { font-size: 28px; font-weight: 700; }
+
   .score {
     position: relative;
     width: 76px;
@@ -175,7 +234,13 @@
 </style>
 </head>
 <body>
-  <div class="mini hidden" id="mini">
+  <div class="mini-wrap hidden" id="mini">
+  <div class="run" id="run"><span class="run-team"></span><span class="run-count"></span><span class="run-time"></span></div>
+  <div class="tos" id="tos">
+    <div><small>T.O.</small><b id="home-to">0</b></div>
+    <div><small>T.O.</small><b id="away-to">0</b></div>
+  </div>
+  <div class="mini">
     <div class="title empty" id="title"><span></span></div>
     <div class="mini-body">
     <div class="time">
@@ -211,6 +276,7 @@
       </div>
     </div>
     </div>
+  </div>
   </div>
 
 <script src="logo-cutout.js"></script>
@@ -258,6 +324,7 @@
       if (name.offsetWidth > room) name.style.transform = 'scaleX(' + room / name.offsetWidth + ')';
     }
     q('.poss').classList.toggle('on', state.possession === side);
+    $(side + '-to').textContent = team.timeouts;
     [...q('.fouls').children].forEach((bar, i) => bar.classList.toggle('on', i < team.fouls));
     q('.bonus').classList.toggle('on', other.fouls >= state.bonusFouls);
 
@@ -290,6 +357,19 @@
 
   function render(state) {
     $('mini').classList.toggle('hidden', state.miniVisible === false);
+    $('tos').classList.toggle('on', state.timeoutsVisible !== false);
+
+    // The run tab keeps its last text while it fades out, so it never blanks mid-fade.
+    const run = state.run || { team: null, points: 0 };
+    const showRun = !!state.runVisible && !!run.team && run.points > 0;
+    if (showRun) {
+      const secs = Math.floor((state.playedMs - run.startAt) / 1000);
+      $('run').querySelector('.run-team').textContent = state[run.team].name;
+      $('run').querySelector('.run-count').textContent = run.points + '-' + run.against + ' RUN';
+      $('run').querySelector('.run-time').textContent =
+        'IN THE LAST ' + Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+    }
+    $('run').classList.toggle('on', showRun);
     setTitle($('title'), state.title || '');
     showIdentity(state.identityVisible !== false);
     renderTeam('home', state.home, state.away, state);

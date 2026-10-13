@@ -5,7 +5,8 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
-const STATE_FILE = path.join(__dirname, 'state.json');
+// STATE_FILE can be overridden to run a throwaway test copy beside the live server.
+const STATE_FILE = process.env.STATE_FILE || path.join(__dirname, 'state.json');
 const LOGO_DIR = path.join(__dirname, 'logo');
 // Station identity logos, shown in rotation at the top left of the overlay.
 const IDENTITY_DIR = path.join(__dirname, 'pictu');
@@ -80,15 +81,20 @@ function scanIdentity() {
 
 let identity = scanIdentity();
 
-function newTeam(name, abbr, color, logo = null) {
-  return { name, abbr, color, logo, score: 0, fouls: 0, timeouts: 2 };
+const MAX_TIMEOUTS = 20;
+
+function newTeam(name, abbr, color, logo = null, timeouts = 2) {
+  return { name, abbr, color, logo, score: 0, fouls: 0, timeouts };
 }
 
 function newGame(prev) {
+  // How many timeouts each team starts with. The operator sets this; the server never
+  // changes a team's timeouts by itself (no automatic refill at half-time or overtime).
+  const timeoutsTotal = prev ? prev.timeoutsTotal : 2;
   const keep = (side, name, abbr, color) =>
     prev
-      ? newTeam(prev[side].name, prev[side].abbr, prev[side].color, prev[side].logo)
-      : newTeam(name, abbr, color);
+      ? newTeam(prev[side].name, prev[side].abbr, prev[side].color, prev[side].logo, timeoutsTotal)
+      : newTeam(name, abbr, color, null, timeoutsTotal);
   const periodLengthSec = prev ? prev.periodLengthSec : 600;
   return {
     visible: prev ? prev.visible : true,
@@ -103,6 +109,17 @@ function newGame(prev) {
     identityVisible: prev ? prev.identityVisible : true,
     miniVisible: prev ? prev.miniVisible : true,
     title: prev ? prev.title : 'Quezon Intertown Basketball Tournament 2026',
+    // Scoring run, e.g. "12-2 run in the last 3:10". Worked out by findRun() from scoreLog;
+    // it pops up on the mini scoreboard by itself (runVisible) each time the running team
+    // scores, once the run has reached runThreshold points. runAuto switches that off.
+    run: { team: null, points: 0, against: 0, startAt: 0 },
+    runVisible: false,
+    runAuto: prev ? prev.runAuto : true,
+    runThreshold: prev ? prev.runThreshold : 7,
+    timeoutsTotal,
+    timeoutsVisible: prev ? prev.timeoutsVisible : true,
+    playedMs: 0,   // total game-clock time played so far
+    scoreLog: [],  // recent baskets: { team, pts, at } where `at` is playedMs when it was scored
     possession: null,
     bonusFouls: BONUS_FOULS,
   };
@@ -111,7 +128,7 @@ function newGame(prev) {
 function loadState() {
   try {
     const saved = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    return { ...newGame(), ...saved, clockRunning: false, bonusFouls: BONUS_FOULS };
+    return { ...newGame(), ...saved, clockRunning: false, runVisible: false, bonusFouls: BONUS_FOULS };
   } catch {
     return newGame();
   }
@@ -126,8 +143,6 @@ function save() {
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const periodLengthMs = (period) => (period > 4 ? OT_LENGTH_SEC : state.periodLengthSec) * 1000;
-// FIBA: 2 timeouts in the first half, 3 in the second, 1 per overtime.
-const timeoutsFor = (period) => (period > 4 ? 1 : period >= 3 ? 3 : 2);
 
 function stopClock() {
   state.clockRunning = false;
@@ -140,15 +155,112 @@ function startClock() {
   lastTick = Date.now();
 }
 
+// A run is the points one team has scored since the other team last scored. A basket by the
+// other team starts a new run for them; a score correction (-1) comes off the current run.
+const SCORE_LOG_MAX = 60;
+
+// The current run is the most recent stretch of baskets, ending now, in which one team has
+// outscored the other by the widest margin, as on NBA broadcasts ("12-2 run"). The stretch
+// starts with a basket by the running team, and the other team may have scored a little
+// inside it, but no more than a third of the running team's points: 12-2 and 12-4 are runs,
+// 9-4 is not. Its clock time is measured from the basket just before the run began.
+function findRun() {
+  const log = state.scoreLog;
+  const none = { team: null, points: 0, against: 0, startAt: 0 };
+  let best = none;
+  const pts = { home: 0, away: 0 };
+  for (let i = log.length - 1; i >= 0; i--) {
+    pts[log[i].team] += log[i].pts;
+    const team = log[i].team;
+    const other = team === 'home' ? 'away' : 'home';
+    if (pts[other] * 3 > pts[team]) continue;
+    const margin = pts[team] - pts[other];
+    // On a tie the shorter, more recent stretch wins, so only a wider margin replaces it.
+    if (margin > best.points - best.against) {
+      best = { team, points: pts[team], against: pts[other], startAt: i > 0 ? log[i - 1].at : 0 };
+    }
+  }
+  return best;
+}
+
+function trackRun(team, change) {
+  if (change === 0) return;
+  const log = state.scoreLog;
+  if (change > 0) {
+    log.push({ team, pts: change, at: state.playedMs });
+    if (log.length > SCORE_LOG_MAX) log.shift();
+  } else {
+    // A correction comes off that team's most recent basket.
+    let owed = -change;
+    for (let i = log.length - 1; i >= 0 && owed > 0; i--) {
+      if (log[i].team !== team) continue;
+      const take = Math.min(owed, log[i].pts);
+      log[i].pts -= take;
+      owed -= take;
+      if (log[i].pts === 0) log.splice(i, 1);
+    }
+  }
+  state.run = findRun();
+  announceRun(team, change);
+}
+
+const RUN_SHOW_MS = 15000;
+let runTimer = null;
+
+// The run graphic appears by itself: each time the running team scores while the run is
+// worth runThreshold points or more, it shows for RUN_SHOW_MS and then goes away again.
+// "Worth" is the margin, so with the default of 7 a 7-0 mini-run counts and so do 9-2, 12-2
+// and 15-4, but 8-2 (only six points better) does not.
+function announceRun(team, change) {
+  clearTimeout(runTimer);
+  const run = state.run;
+  const earned = state.runAuto && state.runThreshold > 0 && !!run.team &&
+    run.points - run.against >= state.runThreshold;
+  if (!earned) {
+    state.runVisible = false;
+    return;
+  }
+  if (change > 0 && team === run.team) state.runVisible = true;
+  if (!state.runVisible) return;
+  runTimer = setTimeout(() => {
+    state.runVisible = false;
+    save();
+    broadcast();
+  }, RUN_SHOW_MS);
+}
+
+// A save file from before run tracking has no basket log, so start its run afresh.
+state.run = findRun();
+
 const actions = {
   score({ team, delta }) {
-    state[team].score = clamp(state[team].score + delta, 0, 999);
+    const before = state[team].score;
+    state[team].score = clamp(before + delta, 0, 999);
+    trackRun(team, state[team].score - before);
+  },
+  runAuto({ value }) {
+    state.runAuto = !!value;
+    if (!state.runAuto) {
+      clearTimeout(runTimer);
+      state.runVisible = false;
+    }
+  },
+  runThreshold({ points }) {
+    state.runThreshold = clamp(Math.round(points), 0, 99);
   },
   fouls({ team, delta }) {
     state[team].fouls = clamp(state[team].fouls + delta, 0, 99);
   },
   timeouts({ team, delta }) {
-    state[team].timeouts = clamp(state[team].timeouts + delta, 0, 3);
+    state[team].timeouts = clamp(state[team].timeouts + delta, 0, MAX_TIMEOUTS);
+  },
+  // Sets the starting number and gives both teams that many.
+  timeoutsTotal({ count }) {
+    state.timeoutsTotal = clamp(Math.round(count), 0, MAX_TIMEOUTS);
+    state.home.timeouts = state.away.timeouts = state.timeoutsTotal;
+  },
+  timeoutsVisible({ value }) {
+    state.timeoutsVisible = !!value;
   },
   clock({ run }) {
     const want = run === 'toggle' ? !state.clockRunning : !!run;
@@ -189,9 +301,6 @@ const actions = {
     state.shotClockMs = 24000;
     // Team fouls reset each quarter; overtime continues the 4th quarter's count.
     if (state.period <= 4) state.home.fouls = state.away.fouls = 0;
-    if (state.period === 3 || state.period > 4) {
-      state.home.timeouts = state.away.timeouts = timeoutsFor(state.period);
-    }
   },
   // Label correction only: does not touch clock, fouls or timeouts.
   prevPeriod() {
@@ -218,7 +327,7 @@ const actions = {
 };
 
 const TEAM_ACTIONS = new Set(['score', 'fouls', 'timeouts', 'team', 'pickTeam']);
-const NUMERIC_FIELDS = ['delta', 'deltaMs', 'ms', 'seconds'];
+const NUMERIC_FIELDS = ['delta', 'deltaMs', 'ms', 'seconds', 'points', 'count'];
 
 function handle(msg) {
   const fn = Object.hasOwn(actions, msg.action) ? actions[msg.action] : null;
@@ -313,6 +422,7 @@ setInterval(() => {
   const now = Date.now();
   const dt = now - lastTick;
   lastTick = now;
+  state.playedMs += Math.min(dt, state.gameClockMs);
   state.gameClockMs = Math.max(0, state.gameClockMs - dt);
   if (state.shotClockVisible) state.shotClockMs = Math.max(0, state.shotClockMs - dt);
   if (state.gameClockMs === 0 || (state.shotClockVisible && state.shotClockMs === 0)) {

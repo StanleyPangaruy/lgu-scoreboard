@@ -245,6 +245,12 @@
     <div class="row">
       <button class="minor" id="mini-toggle">Mini scoreboard: ON</button>
     </div>
+    <div class="row">
+      <button class="minor" id="run-toggle">Scoring run: none</button>
+    </div>
+    <div class="row">
+      <button class="minor" id="tol-toggle">Timeouts: SHOWN</button>
+    </div>
     <p class="keys">Keyboard: Space = start/stop clock · R = shot 24 · F = shot 14</p>
   </section>
 
@@ -262,6 +268,8 @@
         </div>
       </div>
       <label>Tournament title (shown on both scoreboards; leave empty to hide)<input type="text" id="title-input" maxlength="80"></label>
+      <label>Scoring run: pops up once a run is worth this many points (7 = a 7-0 or 9-2 run)<input type="number" id="run-input" min="1" max="99" step="1"></label>
+      <label>Timeouts per team (changing this gives both teams that many)<input type="number" id="tol-input" min="0" max="20" step="1"></label>
       <label>Minutes per quarter<input type="number" id="period-min" min="1" max="20" step="1"></label>
       <div class="row">
         <button class="danger" data-a="resetGame" data-confirm="Reset the whole game? Scores, fouls and clock go back to zero.">RESET GAME</button>
@@ -330,6 +338,21 @@
     $('mini-toggle').classList.toggle('on', state.miniVisible);
     setValue($('period-min'), state.periodLengthSec / 60);
     setValue($('title-input'), state.title || '');
+    const run = state.run || { team: null, points: 0 };
+    const runBtn = $('run-toggle');
+    let runText = 'no run yet';
+    if (run.team) {
+      const secs = Math.floor((state.playedMs - run.startAt) / 1000);
+      runText = state[run.team].name + ' ' + run.points + '-' + run.against + ' in ' +
+        Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0') +
+        (state.runVisible ? ' — ON AIR' : '');
+    }
+    runBtn.textContent = state.runAuto ? 'Scoring run: AUTO (' + runText + ')' : 'Scoring run: OFF';
+    runBtn.classList.toggle('on', !!state.runAuto);
+    setValue($('run-input'), state.runThreshold);
+    setValue($('tol-input'), state.timeoutsTotal);
+    $('tol-toggle').textContent = 'Timeouts: ' + (state.timeoutsVisible ? 'SHOWN' : 'HIDDEN');
+    $('tol-toggle').classList.toggle('on', !!state.timeoutsVisible);
 
     for (const side of ['home', 'away']) {
       const team = state[side];
@@ -361,6 +384,8 @@
     if (btn.id === 'visible-toggle') return send({ action: 'visible', value: !state.visible });
     if (btn.id === 'identity-toggle') return send({ action: 'identityVisible', value: !state.identityVisible });
     if (btn.id === 'mini-toggle') return send({ action: 'miniVisible', value: !state.miniVisible });
+    if (btn.id === 'run-toggle') return send({ action: 'runAuto', value: !state.runAuto });
+    if (btn.id === 'tol-toggle') return send({ action: 'timeoutsVisible', value: !state.timeoutsVisible });
     if (btn.dataset.f === 'poss') {
       const side = btn.closest('section').id;
       return send({ action: 'possession', value: state.possession === side ? null : side });
@@ -382,6 +407,8 @@
     const input = e.target;
     if (input.id === 'period-min') return send({ action: 'periodLength', seconds: Number(input.value) * 60 });
     if (input.id === 'title-input') return send({ action: 'title', text: input.value });
+    if (input.id === 'run-input') return send({ action: 'runThreshold', points: Number(input.value) });
+    if (input.id === 'tol-input') return send({ action: 'timeoutsTotal', count: Number(input.value) });
     const setup = input.closest('[data-team]');
     if (!setup) return;
     if (input.dataset.k === 'pick') send({ action: 'pickTeam', team: setup.dataset.team, id: input.value });

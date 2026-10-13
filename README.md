@@ -54,6 +54,16 @@ clock on the left, and each team's logo, town name, foul bars and score stacked 
 its own browser source (1920×1080). It sits at the bottom left; add `?pos=tl`, `?pos=tr` or
 `?pos=br` to the address for another corner.
 
+The mini scoreboard can show a **scoring run** tab, such as "LUCBAN 12-2 RUN IN THE LAST
+3:10". It appears by itself: once a run is worth 7 points (7-0, 9-2, 12-2, 15-4), the tab
+pops up for 15 seconds each time the running team scores again. The control panel's run button shows the current run and switches the
+feature off or back on; the 7 can be changed under Setup.
+
+A run does not end the moment the other team scores: it continues as long as the other team
+has no more than a third of the running team's points (12-2 and 12-4 are runs; 9-4 is not).
+The tab stops appearing when the run ends or the other team starts one. The time is
+game-clock time since the run began, so it only advances while the clock runs.
+
 ### OBS Studio
 
 1. Under **Sources**, click **+** and choose **Browser**.
@@ -104,6 +114,7 @@ scorebug.
 | +1, +2, +3, −1 (fix) | Changes a team's score |
 | Fouls + / − | Team fouls |
 | Timeouts Use / + | Timeouts remaining |
+| Timeouts: SHOWN / HIDDEN | Shows or hides timeouts on both scoreboards |
 | Possession | Toggles the possession arrow for that team |
 | NEXT PERIOD | Moves to the next quarter or overtime and resets the clock |
 | ◀ Period label | Corrects the period label only |
@@ -123,7 +134,9 @@ FIBA defaults:
 - 10-minute quarters (adjustable in Setup) and 5-minute overtime
 - BONUS appears for a team once its opponent has 5 team fouls
 - Fouls reset each quarter and carry from the 4th quarter into overtime
-- Timeouts: 2 in the first half, 3 in the second half, 1 per overtime
+- Timeouts are manual: set how many each team gets under Setup (any number up to 20); they
+  are never refilled automatically, so add them back yourself if your league gives more
+  after half-time
 - When the shot clock reaches 0 the game clock stops
 
 ## How it works
